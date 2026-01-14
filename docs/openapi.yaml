@@ -1,0 +1,316 @@
+# ============================================================
+# OpenAPI Specification - myTrimmy-prep
+# Generated: 2026-01-14
+# ============================================================
+#
+# API-FIRST DESIGN: This spec is the source of truth.
+# Backend routes MUST match these paths exactly.
+# Frontend API clients are generated from this spec.
+#
+# Usage:
+#   - View in Swagger UI: https://editor.swagger.io/
+#   - Generate clients: npx openapi-generator-cli generate
+#   - Validate: npx @stoplight/spectral-cli lint docs/openapi.yaml
+#
+# ============================================================
+
+openapi: 3.0.3
+
+info:
+  title: myTrimmy-prep API
+  version: 1.0.0
+  description: |
+    REST API for myTrimmy-prep.
+
+    ## Authentication
+    All endpoints (except where noted) require a valid Bearer token in the Authorization header.
+
+    ## Rate Limiting
+    - Standard: 100 requests/minute
+    - Authenticated: 1000 requests/minute
+
+    ## Pagination
+    List endpoints support cursor-based pagination via `cursor` and `limit` query parameters.
+  contact:
+    name: API Support
+    email: api@example.com
+  license:
+    name: Proprietary
+    url: https://example.com/license
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production
+  - url: https://api.staging.example.com/v1
+    description: Staging
+  - url: http://localhost:3000/api
+    description: Local Development
+
+# ============================================================
+# SECURITY SCHEMES
+# ============================================================
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token obtained from authentication endpoint.
+        Include in Authorization header: `Bearer <token>`
+
+# ============================================================
+# REUSABLE SCHEMAS
+# ============================================================
+
+  schemas:
+    # --- Error Response ---
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - type
+            - message
+          properties:
+            type:
+              type: string
+              enum:
+                - bad_request
+                - unauthorized
+                - forbidden
+                - not_found
+                - conflict
+                - rate_limited
+                - internal_error
+            message:
+              type: string
+              example: The requested resource was not found
+            details:
+              type: array
+              items:
+                $ref: '#/components/schemas/ValidationError'
+            requestId:
+              type: string
+              format: uuid
+              example: 550e8400-e29b-41d4-a716-446655440000
+
+    ValidationError:
+      type: object
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          example: email
+        message:
+          type: string
+          example: Invalid email format
+        code:
+          type: string
+          example: invalid_format
+
+    # --- Pagination ---
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 100
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        hasMore:
+          type: boolean
+          example: true
+        nextCursor:
+          type: string
+          example: eyJpZCI6IjEyMyJ9
+
+    # --- Timestamps ---
+    Timestamps:
+      type: object
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          example: '2024-01-15T10:30:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2024-01-15T14:45:00Z'
+
+
+# ============================================================
+# REUSABLE PARAMETERS
+# ============================================================
+
+  parameters:
+    PathId:
+      name: id
+      in: path
+      required: true
+      description: Resource UUID
+      schema:
+        type: string
+        format: uuid
+      example: 550e8400-e29b-41d4-a716-446655440000
+
+    QueryPage:
+      name: page
+      in: query
+      required: false
+      description: Page number for pagination (1-indexed)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      example: 1
+
+    QueryLimit:
+      name: limit
+      in: query
+      required: false
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      example: 20
+
+    QueryCursor:
+      name: cursor
+      in: query
+      required: false
+      description: Cursor for pagination (use nextCursor from previous response)
+      schema:
+        type: string
+      example: eyJpZCI6IjEyMyJ9
+
+    QueryOrderBy:
+      name: orderBy
+      in: query
+      required: false
+      description: Field to order results by
+      schema:
+        type: string
+        default: createdAt
+      example: createdAt
+
+    QueryOrderDir:
+      name: orderDir
+      in: query
+      required: false
+      description: Order direction
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+      example: desc
+
+# ============================================================
+# REUSABLE RESPONSES
+# ============================================================
+
+  responses:
+    BadRequest:
+      description: Bad Request - Invalid input or validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              type: bad_request
+              message: Validation failed
+              details:
+                - field: email
+                  message: Invalid email format
+                  code: invalid_format
+              requestId: 550e8400-e29b-41d4-a716-446655440000
+
+    Unauthorized:
+      description: Unauthorized - Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              type: unauthorized
+              message: Authentication required
+              requestId: 550e8400-e29b-41d4-a716-446655440000
+
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              type: forbidden
+              message: You do not have permission to access this resource
+              requestId: 550e8400-e29b-41d4-a716-446655440000
+
+    NotFound:
+      description: Not Found - Resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              type: not_found
+              message: The requested resource was not found
+              requestId: 550e8400-e29b-41d4-a716-446655440000
+
+    InternalError:
+      description: Internal Server Error - Unexpected error occurred
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              type: internal_error
+              message: An unexpected error occurred
+              requestId: 550e8400-e29b-41d4-a716-446655440000
+
+# ============================================================
+# API PATHS
+# ============================================================
+
+paths:
+
+
+# ============================================================
+# TAGS
+# ============================================================
+
+tags:
+
+# ============================================================
+# GENERATED BY MENTAL MODELS SDLC
+# ============================================================
