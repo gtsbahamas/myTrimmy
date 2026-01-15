@@ -9,7 +9,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
-import { createClient } from '@/lib/supabase/server';
 import { analyzeSourceForUpscaling } from '@/lib/asset-generator';
 import {
   MIN_SOURCE_SIZE,
@@ -23,22 +22,14 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Authentication check
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    // Note: Analyze endpoint is public to allow preview before signup
+    // Bundle generation requires authentication
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // 2. Parse multipart form data
+    // 1. Parse multipart form data
     const formData = await request.formData();
     const imageFile = formData.get('image') as File | null;
 
-    // 3. Validate image file presence
+    // 2. Validate image file presence
     if (!imageFile) {
       return NextResponse.json(
         { error: 'Image file is required' },
@@ -46,7 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Validate file type
+    // 3. Validate file type
     if (!ALLOWED_SOURCE_TYPES.includes(imageFile.type as typeof ALLOWED_SOURCE_TYPES[number])) {
       return NextResponse.json(
         {
@@ -56,7 +47,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Validate file size
+    // 4. Validate file size
     if (imageFile.size > MAX_SOURCE_SIZE) {
       return NextResponse.json(
         {
@@ -66,7 +57,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. Read image and analyze
+    // 5. Read image and analyze
     const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
     const metadata = await sharp(imageBuffer).metadata();
 
@@ -77,13 +68,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 7. Analyze for upscaling requirements
+    // 6. Analyze for upscaling requirements
     const analysis = await analyzeSourceForUpscaling(imageBuffer);
 
-    // 8. Check if image meets minimum requirements
+    // 7. Check if image meets minimum requirements
     const meetsMinimum = Math.min(metadata.width, metadata.height) >= MIN_SOURCE_SIZE;
 
-    // 9. Calculate platform-specific asset counts
+    // 8. Calculate platform-specific asset counts
     const platformSummary = {
       ios: {
         count: IOS_ASSETS.length,
@@ -107,7 +98,7 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    // 10. Return analysis
+    // 9. Return analysis
     return NextResponse.json({
       valid: meetsMinimum,
       image: {
