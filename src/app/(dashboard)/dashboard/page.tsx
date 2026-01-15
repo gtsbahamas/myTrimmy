@@ -42,6 +42,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { Tables } from '@/types/database';
+import { AssetGenerator } from '@/components/asset-generator';
 
 type ImageRecord = Tables<'images'>;
 
@@ -977,6 +978,9 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Asset Bundle Generator */}
+      <AssetGenerator />
 
       {/* Error Display */}
       {error && (
