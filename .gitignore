@@ -33,3 +33,4 @@ coverage/
 
 # Claude internal
 .claude/
+.env*.local
