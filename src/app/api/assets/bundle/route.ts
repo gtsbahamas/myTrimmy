@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { createClient } from '@/lib/supabase/server';
 import { safeValidateAssetBundleInput } from '@/lib/validation/asset-bundle';
-import { createAssetBundle, getAssetCount } from '@/lib/asset-generator';
+import { createAssetBundleWithCounts, getAssetCount } from '@/lib/asset-generator';
 import {
   MIN_SOURCE_SIZE,
   MAX_SOURCE_SIZE,
@@ -116,8 +116,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 8. Generate the asset bundle
-    const zipBuffer = await createAssetBundle(imageBuffer, config);
+    // 8. Generate the asset bundle with platform counts
+    const { buffer: zipBuffer, platformCounts } = await createAssetBundleWithCounts(
+      imageBuffer,
+      config
+    );
 
     // 9. Create filename from app name
     const safeFilename = config.appName
@@ -125,14 +128,18 @@ export async function POST(request: NextRequest) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
 
-    // 10. Return ZIP file as download
+    // 10. Return ZIP file as download with platform breakdown
     return new NextResponse(new Uint8Array(zipBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/zip',
         'Content-Disposition': `attachment; filename="${safeFilename}-assets.zip"`,
         'Content-Length': zipBuffer.length.toString(),
-        'X-Asset-Count': getAssetCount().toString(),
+        'X-Asset-Count': platformCounts.total.toString(),
+        'X-iOS-Count': platformCounts.ios.toString(),
+        'X-Android-Count': platformCounts.android.toString(),
+        'X-Web-Count': platformCounts.web.toString(),
+        'X-Social-Count': platformCounts.social.toString(),
       },
     });
   } catch (error) {

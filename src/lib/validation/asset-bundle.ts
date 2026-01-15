@@ -10,6 +10,22 @@ import { z } from 'zod';
 const HEX_COLOR_REGEX = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
 
 /**
+ * Schema for platform selection.
+ * At least one platform must be selected.
+ */
+export const platformSelectionSchema = z
+  .object({
+    ios: z.boolean().default(true),
+    android: z.boolean().default(true),
+    web: z.boolean().default(true),
+    social: z.boolean().default(true),
+  })
+  .refine(
+    (data) => data.ios || data.android || data.web || data.social,
+    'At least one platform must be selected'
+  );
+
+/**
  * Schema for asset bundle input configuration.
  * Validates app name, colors, and optional metadata.
  */
@@ -42,6 +58,7 @@ export const assetBundleInputSchema = z.object({
     .string()
     .max(100, 'Start URL must be 100 characters or less')
     .default('/'),
+  platforms: platformSelectionSchema.optional(),
 });
 
 /** Validated asset bundle input type */

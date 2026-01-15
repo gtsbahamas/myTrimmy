@@ -1,8 +1,8 @@
 /**
- * Root Layout - myTrimmy
+ * Root Layout - Iconym
  *
- * Digital Darkroom aesthetic with Playfair Display (serif headlines)
- * and DM Sans (refined body text).
+ * The last mile for your brand.
+ * Transform any logo into production-ready assets for iOS, Android, Web, and Social.
  */
 
 import type { Metadata } from "next";
@@ -10,18 +10,22 @@ import { Providers } from "@/components/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "myTrimmy — Professional Image Processing",
-  description: "Transform your images with precision. Professional-grade batch processing, format conversion, and optimization.",
+  title: "Iconym — The Last Mile for Your Brand",
+  description: "Transform any logo into production-ready assets. Generate iOS icons, Android adaptive icons, favicons, PWA assets, and social media images in one click.",
+  keywords: ["app icons", "favicon generator", "iOS icons", "Android icons", "PWA assets", "og:image generator", "brand assets", "icon generator"],
   openGraph: {
-    title: "myTrimmy — Professional Image Processing",
-    description: "Transform your images with precision. Professional-grade batch processing, format conversion, and optimization.",
+    title: "Iconym — The Last Mile for Your Brand",
+    description: "One logo in, 50+ production-ready assets out. iOS, Android, Web, Social. Ship faster.",
     type: "website",
+    siteName: "Iconym",
   },
   twitter: {
     card: "summary_large_image",
-    title: "myTrimmy — Professional Image Processing",
-    description: "Transform your images with precision. Professional-grade batch processing, format conversion, and optimization.",
+    title: "Iconym — The Last Mile for Your Brand",
+    description: "One logo in, 50+ production-ready assets out. iOS, Android, Web, Social. Ship faster.",
+    creator: "@iconym",
   },
+  metadataBase: new URL("https://iconym.com"),
 };
 
 export default function RootLayout({
