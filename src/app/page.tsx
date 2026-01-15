@@ -6,6 +6,7 @@
  */
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Smartphone, Globe, Share2, Download, Sparkles, Check } from 'lucide-react';
 import { LandingNavbar } from '@/components/landing-navbar';
@@ -25,9 +26,14 @@ export default function LandingPage() {
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-8">
           {/* Logo */}
           <Link href="/" className="group flex items-center gap-3">
-            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-primary/10 transition-all duration-500 group-hover:bg-primary/20">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent" />
-              <span className="relative font-display text-xl font-semibold text-primary">I</span>
+            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl transition-all duration-500">
+              <Image
+                src="/icon-extracted.png"
+                alt="Iconym"
+                width={40}
+                height={40}
+                className="object-contain"
+              />
             </div>
             <span className="font-display text-xl tracking-tight text-foreground">Iconym</span>
           </Link>
@@ -441,8 +447,14 @@ export default function LandingPage() {
           <div className="flex flex-col items-center justify-between gap-8 md:flex-row">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                <span className="font-display text-xl font-semibold text-primary">I</span>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden">
+                <Image
+                  src="/icon-extracted.png"
+                  alt="Iconym"
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                />
               </div>
               <span className="font-display text-xl tracking-tight text-foreground">Iconym</span>
             </Link>

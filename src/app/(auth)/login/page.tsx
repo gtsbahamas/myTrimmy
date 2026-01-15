@@ -9,6 +9,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { signIn, signInWithGoogle, type OAuthProvider } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -140,10 +141,16 @@ function LoginPageContent() {
           href="/"
           className="group absolute left-6 top-6 flex items-center gap-3 opacity-0 animate-fade-in"
         >
-          <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-primary/10 transition-all duration-300 group-hover:bg-primary/20">
-            <span className="font-display text-xl font-semibold text-primary">m</span>
+          <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl transition-all duration-300">
+            <Image
+              src="/icon-extracted.png"
+              alt="Iconym"
+              width={40}
+              height={40}
+              className="object-contain"
+            />
           </div>
-          <span className="font-display text-lg tracking-tight text-foreground">myTrimmy</span>
+          <span className="font-display text-lg tracking-tight text-foreground">Iconym</span>
         </Link>
 
         {/* Card */}

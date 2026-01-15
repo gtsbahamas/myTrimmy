@@ -10,6 +10,7 @@
 import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth-guard';
 import { AuthGuard } from '@/components/auth-guard';
@@ -266,19 +267,30 @@ function Sidebar({ navItems, isCollapsed, onToggleCollapse, pathname }: SidebarP
             href="/dashboard"
             className="group flex items-center gap-3"
           >
-            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-primary/10 transition-all duration-300 group-hover:bg-primary/20">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent" />
-              <span className="relative font-display text-xl font-semibold text-primary">m</span>
+            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl transition-all duration-300">
+              <Image
+                src="/icon-extracted.png"
+                alt="Iconym"
+                width={40}
+                height={40}
+                className="object-contain"
+              />
             </div>
-            <span className="font-display text-lg tracking-tight text-foreground">myTrimmy</span>
+            <span className="font-display text-lg tracking-tight text-foreground">Iconym</span>
           </Link>
         )}
         {isCollapsed && (
           <Link
             href="/dashboard"
-            className="group mx-auto flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-primary/10 transition-all duration-300 hover:bg-primary/20"
+            className="group mx-auto flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl transition-all duration-300"
           >
-            <span className="font-display text-xl font-semibold text-primary">m</span>
+            <Image
+              src="/icon-extracted.png"
+              alt="Iconym"
+              width={40}
+              height={40}
+              className="object-contain"
+            />
           </Link>
         )}
       </div>
@@ -482,10 +494,16 @@ function MobileNav({ navItems, isOpen, onClose, pathname }: MobileNavProps) {
             className="group flex items-center gap-3"
             onClick={onClose}
           >
-            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-primary/10">
-              <span className="font-display text-xl font-semibold text-primary">m</span>
+            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl">
+              <Image
+                src="/icon-extracted.png"
+                alt="Iconym"
+                width={40}
+                height={40}
+                className="object-contain"
+              />
             </div>
-            <span className="font-display text-lg tracking-tight text-foreground">myTrimmy</span>
+            <span className="font-display text-lg tracking-tight text-foreground">Iconym</span>
           </Link>
         </div>
 
