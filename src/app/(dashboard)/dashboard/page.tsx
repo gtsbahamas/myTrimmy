@@ -132,13 +132,38 @@ export default function DashboardPage() {
     setIsUploading(false);
   }, [userId, supabase, addActivity, updateActivity]);
 
-  // Handle background removal - currently disabled, will be server-side
+  // Handle background removal - server-side via Replicate API
   const handleBackgroundRemoval = React.useCallback(async () => {
-    // TODO: Implement server-side background removal
-    // The client-side @imgly/background-removal library has issues in production
-    // Will implement via API endpoint with proper ML model hosting
-    throw new Error('Background removal is temporarily unavailable. Coming soon!');
-  }, []);
+    if (!selectedImage) {
+      throw new Error('No image selected');
+    }
+
+    const response = await fetch(`/api/images/${selectedImage.id}/remove-background`, {
+      method: 'POST',
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Background removal failed');
+    }
+
+    // Update local state with the processed image
+    const updatedImage = {
+      ...selectedImage,
+      status: 'completed' as const,
+      processed_url: result.data.processed_url,
+      width: result.data.width,
+      height: result.data.height,
+    };
+
+    setSelectedImage(updatedImage);
+    setImages(prev =>
+      prev.map(img => img.id === selectedImage.id ? updatedImage : img)
+    );
+
+    return result;
+  }, [selectedImage]);
 
   // Handle image processing
   const handleProcess = React.useCallback(async (

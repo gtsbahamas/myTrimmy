@@ -41,7 +41,7 @@ interface LogoCanvasProps {
 }
 
 const ACTION_PILLS = [
-  // { id: 'removeBackground' as const, label: 'Remove BG', icon: Eraser, description: 'Make background transparent' },  // Temporarily disabled - server-side implementation coming soon
+  { id: 'removeBackground' as const, label: 'Remove BG', icon: Eraser, description: 'Make background transparent' },
   { id: 'trim' as const, label: 'Trim', icon: Scissors, description: 'Remove whitespace' },
   { id: 'resize' as const, label: 'Resize', icon: Maximize2, description: 'Change dimensions' },
   { id: 'convert' as const, label: 'Convert', icon: FileType, description: 'Change format' },
