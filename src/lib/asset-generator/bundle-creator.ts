@@ -24,6 +24,12 @@ import {
   generateManifest,
   generateBrowserconfig,
   generateReadme,
+  generateNextJsIcon,
+  generateNextJsAppleIcon,
+  generateNextJsMetadata,
+  generateExpoConfig,
+  generateExpoAppConfig,
+  generateHtmlHead,
 } from './config-generator';
 import { generateIOSAssets, generateIOSContentsJson } from './ios-generator';
 import {
@@ -166,6 +172,26 @@ export async function createAssetBundleWithCounts(
       // Add README
       archive.append(generateReadmeWithPlatforms(config, platforms, counts), {
         name: 'README.md',
+      });
+
+      // Add framework code snippets
+      archive.append(generateNextJsIcon(config), {
+        name: 'code/nextjs/icon.tsx',
+      });
+      archive.append(generateNextJsAppleIcon(config), {
+        name: 'code/nextjs/apple-icon.tsx',
+      });
+      archive.append(generateNextJsMetadata(config), {
+        name: 'code/nextjs/metadata.ts',
+      });
+      archive.append(generateExpoConfig(config), {
+        name: 'code/expo/app.json',
+      });
+      archive.append(generateExpoAppConfig(config), {
+        name: 'code/expo/app.config.js',
+      });
+      archive.append(generateHtmlHead(config), {
+        name: 'code/html/head.html',
       });
 
       // Finalize the archive

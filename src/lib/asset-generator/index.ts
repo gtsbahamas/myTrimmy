@@ -7,7 +7,17 @@
 
 export { generateAsset, generateSquareAsset, generateMaskableAsset, generateSocialAsset, ensureSquare } from './image-generator';
 export { createIcoFile } from './ico-generator';
-export { generateManifest, generateBrowserconfig, generateReadme } from './config-generator';
+export {
+  generateManifest,
+  generateBrowserconfig,
+  generateReadme,
+  generateNextJsIcon,
+  generateNextJsAppleIcon,
+  generateNextJsMetadata,
+  generateExpoConfig,
+  generateExpoAppConfig,
+  generateHtmlHead,
+} from './config-generator';
 export { createAssetBundle, createAssetBundleWithCounts, getAssetCount, type BundleResult } from './bundle-creator';
 export { generateIOSAssets, generateIOSContentsJson, getIOSFolderStructure } from './ios-generator';
 export { generateAndroidAssets, generateAdaptiveIconXml, generateColorsXml, getAndroidFolderStructure } from './android-generator';
