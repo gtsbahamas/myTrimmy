@@ -67,22 +67,32 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const apiToken = process.env.REPLICATE_API_TOKEN;
-
-    // Check if API token is configured
-    if (!apiToken) {
-      return NextResponse.json(
-        { error: 'Background removal service not configured. Please add REPLICATE_API_TOKEN to environment variables.' },
-        { status: 503 }
-      );
-    }
-
     const supabase = await createClient();
 
     // Verify user is authenticated
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get user's profile to check for their own API key
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('replicate_api_key')
+      .eq('id', user.id)
+      .single();
+
+    // Use user's API key if available, otherwise fall back to app's key
+    const userApiKey = profile?.replicate_api_key;
+    const apiToken = userApiKey || process.env.REPLICATE_API_TOKEN;
+    const usingUserKey = !!userApiKey;
+
+    // Check if any API token is available
+    if (!apiToken) {
+      return NextResponse.json(
+        { error: 'Background removal service not configured. Please add your Replicate API key in Settings, or contact support.' },
+        { status: 503 }
+      );
     }
 
     // Get the image record
@@ -105,6 +115,7 @@ export async function POST(
 
     console.log(`Processing background removal for image: ${id}`);
     console.log(`Image URL: ${imageUrl}`);
+    console.log(`Using ${usingUserKey ? "user's API key" : "app API key"}`);
 
     // Create prediction via Replicate API
     // Using cjwbw/rembg model

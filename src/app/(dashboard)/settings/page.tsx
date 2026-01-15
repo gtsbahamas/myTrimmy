@@ -91,9 +91,10 @@ export default function SettingsPage() {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="presets">Presets</TabsTrigger>
+            <TabsTrigger value="api-keys">API Keys</TabsTrigger>
             <TabsTrigger value="account">Account</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
@@ -105,6 +106,10 @@ export default function SettingsPage() {
 
           <TabsContent value="presets" className="space-y-6">
             <PresetsSettings />
+          </TabsContent>
+
+          <TabsContent value="api-keys" className="space-y-6">
+            <APIKeysSettings />
           </TabsContent>
 
           <TabsContent value="account" className="space-y-6">
@@ -449,6 +454,207 @@ function AccountSettings() {
         <CardFooter>
           <SubmitButton isSubmitting={form.formState.isSubmitting}>
             Update Password
+          </SubmitButton>
+        </CardFooter>
+      </form>
+    </Card>
+  );
+}
+
+// ============================================================
+// API KEYS SETTINGS
+// ============================================================
+
+const APIKeySchema = z.object({
+  replicateApiKey: z.string().optional(),
+});
+
+type APIKeyFormData = z.infer<typeof APIKeySchema>;
+
+function APIKeysSettings() {
+  const { user } = useAuth();
+  const [error, setError] = React.useState<string | null>(null);
+  const [success, setSuccess] = React.useState<string | null>(null);
+  const [hasKey, setHasKey] = React.useState(false);
+  const [showKey, setShowKey] = React.useState(false);
+
+  const form = useForm<APIKeyFormData>({
+    resolver: zodResolver(APIKeySchema),
+    defaultValues: {
+      replicateApiKey: '',
+    },
+  });
+
+  // Load existing API key status
+  React.useEffect(() => {
+    async function loadAPIKeys() {
+      if (!user?.id) return;
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('profiles')
+        .select('replicate_api_key')
+        .eq('id', user.id)
+        .single();
+
+      if (data?.replicate_api_key) {
+        setHasKey(true);
+        // Don't show the actual key, just indicate it exists
+        form.setValue('replicateApiKey', '••••••••••••••••');
+      }
+    }
+    loadAPIKeys();
+  }, [user?.id, form]);
+
+  async function handleSubmit(data: APIKeyFormData) {
+    if (!user?.id) return;
+
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const supabase = createClient();
+
+      // Don't update if user hasn't changed the masked key
+      const keyToSave = data.replicateApiKey === '••••••••••••••••'
+        ? undefined
+        : data.replicateApiKey || null;
+
+      if (keyToSave !== undefined) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            replicate_api_key: keyToSave,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+
+        if (updateError) {
+          setError(updateError.message);
+          return;
+        }
+
+        setHasKey(!!keyToSave);
+        if (keyToSave) {
+          form.setValue('replicateApiKey', '••••••••••••••••');
+        }
+      }
+
+      setSuccess('API key updated successfully.');
+      setShowKey(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update API key');
+    }
+  }
+
+  async function handleRemoveKey() {
+    if (!user?.id) return;
+
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const supabase = createClient();
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          replicate_api_key: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+
+      setHasKey(false);
+      form.setValue('replicateApiKey', '');
+      setSuccess('API key removed.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove API key');
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>API Keys</CardTitle>
+        <CardDescription>
+          Add your own API keys for unlimited access to premium features.
+          Your keys are encrypted at rest and never shared.
+        </CardDescription>
+      </CardHeader>
+      <form onSubmit={form.handleSubmit(handleSubmit)}>
+        <CardContent className="space-y-6">
+          <FormError message={error} />
+          <FormSuccess message={success} />
+
+          {/* Replicate API Key */}
+          <div className="space-y-4 rounded-lg border border-border/50 p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h4 className="font-medium">Replicate API Key</h4>
+                <p className="text-sm text-muted-foreground">
+                  Used for AI-powered background removal. Get your key at{' '}
+                  <a
+                    href="https://replicate.com/account/api-tokens"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    replicate.com
+                  </a>
+                </p>
+              </div>
+              {hasKey && (
+                <span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-500">
+                  Configured
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="replicateApiKey">API Key</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="replicateApiKey"
+                  type={showKey ? 'text' : 'password'}
+                  placeholder="r8_xxxxxxxxxxxx"
+                  {...form.register('replicateApiKey')}
+                  disabled={form.formState.isSubmitting}
+                  className="font-mono"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowKey(!showKey)}
+                >
+                  {showKey ? 'Hide' : 'Show'}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Without your own key, you&apos;ll use the shared pool (limited usage).
+                With your own key, usage is unlimited and billed directly to your Replicate account.
+              </p>
+            </div>
+
+            {hasKey && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleRemoveKey}
+                className="text-destructive hover:text-destructive"
+              >
+                Remove Key
+              </Button>
+            )}
+          </div>
+        </CardContent>
+        <CardFooter>
+          <SubmitButton isSubmitting={form.formState.isSubmitting}>
+            Save API Keys
           </SubmitButton>
         </CardFooter>
       </form>

@@ -224,6 +224,7 @@ export type Database = {
           id: string
           is_pro: boolean | null
           pro_purchased_at: string | null
+          replicate_api_key: string | null
           stripe_customer_id: string | null
           updated_at: string
         }
@@ -234,6 +235,7 @@ export type Database = {
           id: string
           is_pro?: boolean | null
           pro_purchased_at?: string | null
+          replicate_api_key?: string | null
           stripe_customer_id?: string | null
           updated_at?: string
         }
@@ -244,6 +246,7 @@ export type Database = {
           id?: string
           is_pro?: boolean | null
           pro_purchased_at?: string | null
+          replicate_api_key?: string | null
           stripe_customer_id?: string | null
           updated_at?: string
         }
@@ -299,6 +302,7 @@ export type Database = {
           id: string
           is_pro: boolean | null
           pro_purchased_at: string | null
+          replicate_api_key: string | null
           stripe_customer_id: string | null
           updated_at: string
         }
