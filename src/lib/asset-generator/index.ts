@@ -11,3 +11,4 @@ export { generateManifest, generateBrowserconfig, generateReadme } from './confi
 export { createAssetBundle, createAssetBundleWithCounts, getAssetCount, type BundleResult } from './bundle-creator';
 export { generateIOSAssets, generateIOSContentsJson, getIOSFolderStructure } from './ios-generator';
 export { generateAndroidAssets, generateAdaptiveIconXml, generateColorsXml, getAndroidFolderStructure } from './android-generator';
+export { smartUpscale, analyzeSourceForUpscaling, getMinimumSourceSize, type UpscaleResult } from './upscaler';
