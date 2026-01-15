@@ -9,7 +9,6 @@
 
 import * as React from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { removeBackground } from '@imgly/background-removal';
 import {
   HeroDropZone,
   LogoCanvas,
@@ -133,63 +132,13 @@ export default function DashboardPage() {
     setIsUploading(false);
   }, [userId, supabase, addActivity, updateActivity]);
 
-  // Handle client-side background removal
-  const handleClientSideBackgroundRemoval = React.useCallback(async () => {
-    if (!selectedImage || !userId) return;
-
-    const imageUrl = selectedImage.processed_url || selectedImage.original_url;
-
-    // Fetch the image
-    const response = await fetch(imageUrl);
-    const blob = await response.blob();
-
-    // Remove background using client-side ML
-    const resultBlob = await removeBackground(blob, {
-      output: {
-        format: 'image/png',
-        quality: 1.0,
-      },
-    });
-
-    // Upload the result to Supabase storage
-    const filename = `${Date.now()}-${selectedImage.filename.replace(/\.[^/.]+$/, '')}-nobg.png`;
-    const path = `${userId}/${filename}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('processed')
-      .upload(path, resultBlob, {
-        contentType: 'image/png',
-        cacheControl: '3600',
-      });
-
-    if (uploadError) throw uploadError;
-
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('processed')
-      .getPublicUrl(path);
-
-    // Update database record
-    await supabase
-      .from('images')
-      .update({
-        status: 'completed',
-        processed_url: publicUrl,
-      })
-      .eq('id', selectedImage.id);
-
-    // Update local state
-    const updatedImage = {
-      ...selectedImage,
-      status: 'completed' as const,
-      processed_url: publicUrl,
-    };
-
-    setSelectedImage(updatedImage);
-    setImages(prev =>
-      prev.map(img => img.id === selectedImage.id ? updatedImage : img)
-    );
-  }, [selectedImage, userId, supabase]);
+  // Handle background removal - currently disabled, will be server-side
+  const handleBackgroundRemoval = React.useCallback(async () => {
+    // TODO: Implement server-side background removal
+    // The client-side @imgly/background-removal library has issues in production
+    // Will implement via API endpoint with proper ML model hosting
+    throw new Error('Background removal is temporarily unavailable. Coming soon!');
+  }, []);
 
   // Handle image processing
   const handleProcess = React.useCallback(async (
@@ -215,7 +164,7 @@ export default function DashboardPage() {
       switch (action) {
         case 'removeBackground':
           // Handle client-side background removal
-          await handleClientSideBackgroundRemoval();
+          await handleBackgroundRemoval();
           updateActivity(activityId, {
             status: 'completed',
             message: 'Background removed',
