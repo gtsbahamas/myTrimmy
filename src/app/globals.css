@@ -1,63 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Generated from theme configuration */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    /* Digital Darkroom - Light Mode (inverted for contrast) */
+    --background: 40 10% 98%;
+    --foreground: 30 10% 12%;
+    --card: 40 15% 96%;
+    --card-foreground: 30 10% 12%;
+    --popover: 40 15% 98%;
+    --popover-foreground: 30 10% 12%;
+
+    /* Amber/Gold as primary - the darkroom safelight */
+    --primary: 38 92% 50%;
+    --primary-foreground: 30 10% 8%;
+
+    --secondary: 35 15% 92%;
+    --secondary-foreground: 30 10% 20%;
+
+    --muted: 35 10% 90%;
+    --muted-foreground: 30 8% 45%;
+
+    /* Accent matches primary amber */
+    --accent: 38 85% 55%;
+    --accent-foreground: 30 10% 8%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 35 15% 88%;
+    --input: 35 15% 88%;
+    --ring: 38 92% 50%;
+
+    /* Chart colors - warm editorial palette */
+    --chart-1: 38 92% 50%;
+    --chart-2: 25 85% 55%;
+    --chart-3: 15 75% 50%;
+    --chart-4: 45 80% 45%;
+    --chart-5: 30 70% 40%;
+
+    --radius: 0.625rem;
+
+    /* Typography */
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'DM Sans', system-ui, sans-serif;
   }
 
   .dark {
-    /* Dark mode - auto-generated complementary colors */
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    /* Digital Darkroom - Dark Mode (the true aesthetic) */
+    --background: 30 15% 6%;
+    --foreground: 40 15% 92%;
+    --card: 30 12% 9%;
+    --card-foreground: 40 15% 92%;
+    --popover: 30 12% 8%;
+    --popover-foreground: 40 15% 92%;
+
+    /* Amber/Gold primary - glowing in the dark */
+    --primary: 38 92% 50%;
+    --primary-foreground: 30 15% 6%;
+
+    --secondary: 30 10% 15%;
+    --secondary-foreground: 40 12% 85%;
+
+    --muted: 30 8% 18%;
+    --muted-foreground: 35 8% 55%;
+
+    /* Accent - bright amber glow */
+    --accent: 38 100% 55%;
+    --accent-foreground: 30 15% 6%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 10% 18%;
+    --input: 30 10% 15%;
+    --ring: 38 92% 50%;
+
+    /* Chart colors - warm dark palette */
+    --chart-1: 38 92% 55%;
+    --chart-2: 25 85% 50%;
+    --chart-3: 15 75% 45%;
+    --chart-4: 45 80% 50%;
+    --chart-5: 30 70% 45%;
   }
 }
 
@@ -65,8 +92,182 @@
   * {
     border-color: hsl(var(--border));
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+    font-family: var(--font-body);
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Serif headlines */
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+
+  /* Selection styling - amber highlight */
+  ::selection {
+    background-color: hsl(38 92% 50% / 0.3);
+    color: inherit;
+  }
+
+  /* Focus ring - amber glow */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  /* Film grain overlay */
+  .grain {
+    position: relative;
+  }
+
+  .grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+
+  .dark .grain::after {
+    opacity: 0.05;
+  }
+
+  /* Amber glow effect */
+  .glow-amber {
+    box-shadow:
+      0 0 20px hsl(38 92% 50% / 0.15),
+      0 0 40px hsl(38 92% 50% / 0.1),
+      0 0 60px hsl(38 92% 50% / 0.05);
+  }
+
+  .dark .glow-amber {
+    box-shadow:
+      0 0 20px hsl(38 92% 50% / 0.25),
+      0 0 40px hsl(38 92% 50% / 0.15),
+      0 0 80px hsl(38 92% 50% / 0.1);
+  }
+
+  /* Text glow */
+  .text-glow {
+    text-shadow: 0 0 30px hsl(38 92% 50% / 0.5);
+  }
+
+  /* Cinematic fade animations */
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  .animate-fade-up {
+    animation: fade-up 0.8s ease-out forwards;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.6s ease-out forwards;
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 3s ease-in-out infinite;
+  }
+
+  /* Stagger delays for orchestrated reveals */
+  .delay-100 { animation-delay: 100ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
+  .delay-600 { animation-delay: 600ms; }
+
+  /* Editorial underline effect */
+  .editorial-underline {
+    position: relative;
+    display: inline-block;
+  }
+
+  .editorial-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, hsl(var(--primary)), transparent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s ease;
+  }
+
+  .editorial-underline:hover::after {
+    transform: scaleX(1);
+  }
+
+  /* Darkroom vignette */
+  .vignette {
+    position: relative;
+  }
+
+  .vignette::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 0%, hsl(var(--background)) 100%);
+    opacity: 0.4;
+    pointer-events: none;
+  }
+}
+
+/* Custom scrollbar - subtle warm styling */
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.5);
   }
 }

@@ -1,39 +1,26 @@
 /**
- * Root Layout - myTrimmy-prep
- * Generated: 2026-01-14
+ * Root Layout - myTrimmy
  *
- * Main application layout with metadata and global styles.
- * Wraps entire application with Providers (Auth, Query, Toast, i18n).
- * Place this in: app/layout.tsx
+ * Digital Darkroom aesthetic with Playfair Display (serif headlines)
+ * and DM Sans (refined body text).
  */
 
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "myTrimmy-prep",
-  description: "Welcome to myTrimmy-prep",
+  title: "myTrimmy — Professional Image Processing",
+  description: "Transform your images with precision. Professional-grade batch processing, format conversion, and optimization.",
   openGraph: {
-    title: "myTrimmy-prep",
-    description: "Welcome to myTrimmy-prep",
+    title: "myTrimmy — Professional Image Processing",
+    description: "Transform your images with precision. Professional-grade batch processing, format conversion, and optimization.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "myTrimmy-prep",
-    description: "Welcome to myTrimmy-prep",
+    title: "myTrimmy — Professional Image Processing",
+    description: "Transform your images with precision. Professional-grade batch processing, format conversion, and optimization.",
   },
 };
 
@@ -43,10 +30,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" className="dark">
+      <body className="antialiased custom-scrollbar">
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -1,14 +1,8 @@
 /**
- * Login Page - myTrimmy-prep
- * Generated: 2026-01-14
+ * Login Page - myTrimmy
  *
- * Login page component with OAuth support.
- * Place in: app/(auth)/login/page.tsx
+ * Digital Darkroom aesthetic login with ambient glow and refined typography.
  */
-
-// ============================================================
-// LOGIN PAGE - app/(auth)/login/page.tsx
-// ============================================================
 
 'use client';
 
@@ -54,27 +48,23 @@ function DiscordIcon({ className }: { className?: string }) {
 }
 
 // ============================================================
-// OAUTH DIVIDER COMPONENT
+// COMPONENTS
 // ============================================================
 
 function OAuthDivider() {
   return (
-    <div className="relative my-4">
+    <div className="relative my-6">
       <div className="absolute inset-0 flex items-center">
-        <span className="w-full border-t" />
+        <span className="w-full border-t border-border/50" />
       </div>
       <div className="relative flex justify-center text-xs uppercase">
-        <span className="bg-card px-2 text-muted-foreground">
-          Or continue with
+        <span className="bg-card px-3 text-muted-foreground">
+          Or continue with email
         </span>
       </div>
     </div>
   );
 }
-
-// ============================================================
-// OAUTH BUTTONS COMPONENT
-// ============================================================
 
 interface OAuthButtonsProps {
   readonly loading: boolean;
@@ -91,6 +81,7 @@ function OAuthButtons({ loading, onOAuthClick, loadingProvider }: OAuthButtonsPr
         onClick={() => onOAuthClick('google')}
         disabled={loading}
         aria-label="Sign in with Google"
+        className="h-12"
       >
         {loadingProvider === 'google' ? (
           <span className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
@@ -104,6 +95,7 @@ function OAuthButtons({ loading, onOAuthClick, loadingProvider }: OAuthButtonsPr
         onClick={() => onOAuthClick('github')}
         disabled={loading}
         aria-label="Sign in with GitHub"
+        className="h-12"
       >
         {loadingProvider === 'github' ? (
           <span className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
@@ -117,6 +109,7 @@ function OAuthButtons({ loading, onOAuthClick, loadingProvider }: OAuthButtonsPr
         onClick={() => onOAuthClick('discord')}
         disabled={loading}
         aria-label="Sign in with Discord"
+        className="h-12"
       >
         {loadingProvider === 'discord' ? (
           <span className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
@@ -139,7 +132,6 @@ function LoginPageContent() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
 
-  // Check for error from OAuth callback
   const authError = searchParams.get('error');
   const errorMessage = authError === 'auth_failed'
     ? 'Authentication failed. Please try again.'
@@ -180,29 +172,47 @@ function LoginPageContent() {
         return;
     }
 
-    // If we get here, the OAuth redirect failed
     if (!result.ok) {
       setError(result.error.message);
       setOauthLoading(null);
     }
-    // On success, user is redirected - we won't reach here
   }
 
   const isLoading = loading || oauthLoading !== null;
 
   return (
     <GuestGuard>
-      <main className="flex min-h-screen items-center justify-center px-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <h1 className="text-2xl font-bold">Sign in</h1>
-            <CardDescription>
-              Choose your preferred sign-in method
+      <main className="relative flex min-h-screen items-center justify-center px-6 grain">
+        {/* Ambient background */}
+        <div className="pointer-events-none fixed inset-0 overflow-hidden">
+          <div className="absolute -right-40 -top-40 h-[500px] w-[500px] rounded-full bg-primary/8 blur-[120px]" />
+          <div className="absolute -bottom-40 -left-40 h-[400px] w-[400px] rounded-full bg-primary/5 blur-[100px]" />
+          <div className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/3 blur-[150px]" />
+        </div>
+
+        {/* Logo */}
+        <Link
+          href="/"
+          className="group absolute left-6 top-6 flex items-center gap-3 opacity-0 animate-fade-in"
+        >
+          <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-primary/10 transition-all duration-300 group-hover:bg-primary/20">
+            <span className="font-display text-xl font-semibold text-primary">m</span>
+          </div>
+          <span className="font-display text-lg tracking-tight text-foreground">myTrimmy</span>
+        </Link>
+
+        {/* Card */}
+        <Card className="relative w-full max-w-md opacity-0 animate-fade-up">
+          <CardHeader className="space-y-2 pb-4">
+            <h1 className="font-display text-3xl font-medium tracking-tight">Welcome back</h1>
+            <CardDescription className="text-base">
+              Sign in to continue to your workspace
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+
+          <CardContent className="space-y-6">
             {(error || errorMessage) && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+              <div className="rounded-xl bg-destructive/10 p-4 text-sm text-destructive" role="alert">
                 {error || errorMessage}
               </div>
             )}
@@ -217,9 +227,9 @@ function LoginPageContent() {
             <OAuthDivider />
 
             {/* Email/Password Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -231,12 +241,13 @@ function LoginPageContent() {
                   disabled={isLoading}
                 />
               </div>
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="text-sm font-medium">Password</Label>
                   <Link
                     href="/forgot-password"
-                    className="text-sm text-muted-foreground hover:underline"
+                    className="text-sm text-muted-foreground transition-colors hover:text-primary"
                   >
                     Forgot password?
                   </Link>
@@ -251,16 +262,25 @@ function LoginPageContent() {
                   disabled={isLoading}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {loading ? 'Signing in...' : 'Sign in with email'}
+
+              <Button type="submit" className="glow-amber w-full" disabled={isLoading}>
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                    Signing in...
+                  </span>
+                ) : (
+                  'Sign in'
+                )}
               </Button>
             </form>
           </CardContent>
-          <CardFooter>
-            <p className="text-center text-sm text-muted-foreground w-full">
+
+          <CardFooter className="pt-2">
+            <p className="w-full text-center text-sm text-muted-foreground">
               Don&apos;t have an account?{' '}
-              <Link href="/signup" className="text-primary hover:underline">
-                Sign up
+              <Link href="/signup" className="font-medium text-primary transition-colors hover:text-primary/80">
+                Create one
               </Link>
             </p>
           </CardFooter>
@@ -270,30 +290,31 @@ function LoginPageContent() {
   );
 }
 
-// ============================================================
-// LOADING FALLBACK
-// ============================================================
-
 function LoginPageLoading() {
   return (
-    <main className="flex min-h-screen items-center justify-center px-4">
+    <main className="flex min-h-screen items-center justify-center px-6 grain">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -right-40 -top-40 h-[500px] w-[500px] rounded-full bg-primary/8 blur-[120px]" />
+      </div>
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="h-8 w-24 animate-pulse rounded bg-muted" />
-          <div className="h-4 w-48 animate-pulse rounded bg-muted" />
+        <CardHeader className="space-y-2 pb-4">
+          <div className="h-9 w-40 animate-pulse rounded-lg bg-muted" />
+          <div className="h-5 w-56 animate-pulse rounded-lg bg-muted" />
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="h-10 w-full animate-pulse rounded bg-muted" />
-          <div className="h-10 w-full animate-pulse rounded bg-muted" />
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="h-12 animate-pulse rounded-xl bg-muted" />
+            <div className="h-12 animate-pulse rounded-xl bg-muted" />
+            <div className="h-12 animate-pulse rounded-xl bg-muted" />
+          </div>
+          <div className="h-11 w-full animate-pulse rounded-xl bg-muted" />
+          <div className="h-11 w-full animate-pulse rounded-xl bg-muted" />
+          <div className="h-12 w-full animate-pulse rounded-xl bg-muted" />
         </CardContent>
       </Card>
     </main>
   );
 }
-
-// ============================================================
-// EXPORTED PAGE (with Suspense for useSearchParams)
-// ============================================================
 
 export default function LoginPage() {
   return (
@@ -302,7 +323,3 @@ export default function LoginPage() {
     </Suspense>
   );
 }
-
-// ============================================================
-// GENERATED BY MENTAL MODELS SDLC
-// ============================================================

@@ -1,30 +1,8 @@
 /**
- * Dashboard Layout - myTrimmy-prep
- * Generated: 2026-01-14
+ * Dashboard Layout - myTrimmy
  *
- * Responsive dashboard layout with collapsible sidebar navigation.
- * Includes header with user menu, mobile navigation, and main content area.
- *
- * Place in: components/layout/
- *
- * @example
- * // In app/(dashboard)/layout.tsx:
- * import { DashboardLayout } from '@/components/layout/dashboard-layout';
- *
- * export default function Layout({ children }: { children: React.ReactNode }) {
- *   return <DashboardLayout>{children}</DashboardLayout>;
- * }
- *
- * @example
- * // With custom navigation items:
- * <DashboardLayout
- *   navItems={[
- *     { label: 'Dashboard', href: '/dashboard', icon: HomeIcon },
- *     { label: 'Settings', href: '/settings', icon: SettingsIcon },
- *   ]}
- * >
- *   {children}
- * </DashboardLayout>
+ * Digital Darkroom aesthetic: Warm charcoal, amber accents, editorial typography.
+ * Refined sidebar with subtle glow effects and smooth transitions.
  */
 
 'use client';
@@ -44,7 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
 // ============================================================
@@ -52,39 +30,25 @@ import { cn } from '@/lib/utils';
 // ============================================================
 
 interface NavItem {
-  /** Display label for the navigation item */
   label: string;
-  /** URL path for the navigation link */
   href: string;
-  /** Optional icon component */
   icon?: React.ComponentType<{ className?: string }>;
-  /** Whether this item requires specific permissions */
   requiredPermission?: string;
-  /** Child navigation items for nested menus */
   children?: NavItem[];
 }
 
 interface DashboardLayoutProps {
-  /** Page content */
   children: React.ReactNode;
-  /** Custom navigation items (overrides default entity navigation) */
   navItems?: NavItem[];
-  /** Whether to show the notifications button */
   showNotifications?: boolean;
-  /** Custom header content */
   headerContent?: React.ReactNode;
-  /** Additional CSS classes for the main content area */
   contentClassName?: string;
 }
 
 // ============================================================
-// DEFAULT NAVIGATION ITEMS (Generated from entities)
+// DEFAULT NAVIGATION ITEMS
 // ============================================================
 
-/**
- * Default navigation items based on project entities.
- * Override by passing navItems prop to DashboardLayout.
- */
 const defaultNavItems: NavItem[] = [
   {
     label: 'Dashboard',
@@ -112,7 +76,7 @@ function HomeIcon({ className }: { className?: string }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -133,7 +97,7 @@ function SettingsIcon({ className }: { className?: string }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -154,7 +118,7 @@ function MenuIcon({ className }: { className?: string }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -176,7 +140,7 @@ function ChevronLeftIcon({ className }: { className?: string }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -196,7 +160,7 @@ function ChevronRightIcon({ className }: { className?: string }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -216,7 +180,7 @@ function BellIcon({ className }: { className?: string }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -237,7 +201,7 @@ function UserAvatarIcon({ className }: { className?: string }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -258,7 +222,7 @@ function LogOutIcon({ className }: { className?: string }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -276,58 +240,51 @@ function LogOutIcon({ className }: { className?: string }) {
 // ============================================================
 
 interface SidebarProps {
-  /** Navigation items to display */
   navItems: NavItem[];
-  /** Whether the sidebar is collapsed */
   isCollapsed: boolean;
-  /** Callback to toggle collapsed state */
   onToggleCollapse: () => void;
-  /** Current pathname for active state */
   pathname: string;
 }
 
-/**
- * Collapsible sidebar with navigation items.
- * Shows icons only when collapsed, full labels when expanded.
- */
 function Sidebar({ navItems, isCollapsed, onToggleCollapse, pathname }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 z-40 h-screen border-r bg-background transition-all duration-300',
-        isCollapsed ? 'w-16' : 'w-64'
+        'fixed left-0 top-0 z-40 h-screen border-r border-border/50 bg-card/50 backdrop-blur-xl transition-all duration-500 ease-out',
+        isCollapsed ? 'w-[72px]' : 'w-72'
       )}
       role="navigation"
       aria-label="Main navigation"
     >
+      {/* Subtle ambient glow */}
+      <div className="pointer-events-none absolute -right-20 top-20 h-40 w-40 rounded-full bg-primary/5 blur-3xl" />
+
       {/* Logo / Brand */}
-      <div className="flex h-16 items-center justify-between border-b px-4">
+      <div className="flex h-20 items-center justify-between border-b border-border/50 px-4">
         {!isCollapsed && (
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 font-semibold text-foreground"
+            className="group flex items-center gap-3"
           >
-            <span className="text-xl">myTrimmy-prep</span>
+            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-primary/10 transition-all duration-300 group-hover:bg-primary/20">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent" />
+              <span className="relative font-display text-xl font-semibold text-primary">m</span>
+            </div>
+            <span className="font-display text-lg tracking-tight text-foreground">myTrimmy</span>
           </Link>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggleCollapse}
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          aria-expanded={!isCollapsed}
-          className={cn(isCollapsed && 'mx-auto')}
-        >
-          {isCollapsed ? (
-            <ChevronRightIcon className="h-4 w-4" />
-          ) : (
-            <ChevronLeftIcon className="h-4 w-4" />
-          )}
-        </Button>
+        {isCollapsed && (
+          <Link
+            href="/dashboard"
+            className="group mx-auto flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-primary/10 transition-all duration-300 hover:bg-primary/20"
+          >
+            <span className="font-display text-xl font-semibold text-primary">m</span>
+          </Link>
+        )}
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex flex-col gap-1 p-2" aria-label="Sidebar navigation">
+      <nav className="flex flex-col gap-1.5 p-3" aria-label="Sidebar navigation">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
@@ -337,23 +294,50 @@ function Sidebar({ navItems, isCollapsed, onToggleCollapse, pathname }: SidebarP
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                'hover:bg-accent hover:text-accent-foreground',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300',
+                'hover:bg-primary/5',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
                 isActive
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground',
-                isCollapsed && 'justify-center px-2'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:text-foreground',
+                isCollapsed && 'justify-center px-3'
               )}
               aria-current={isActive ? 'page' : undefined}
               title={isCollapsed ? item.label : undefined}
             >
-              {Icon && <Icon className="h-5 w-5 flex-shrink-0" />}
+              {/* Active indicator */}
+              {isActive && (
+                <div className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
+              )}
+              {Icon && (
+                <Icon className={cn(
+                  'h-5 w-5 flex-shrink-0 transition-colors duration-300',
+                  isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+                )} />
+              )}
               {!isCollapsed && <span>{item.label}</span>}
             </Link>
           );
         })}
       </nav>
+
+      {/* Collapse toggle - bottom */}
+      <div className="absolute bottom-6 left-0 right-0 flex justify-center px-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggleCollapse}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-expanded={!isCollapsed}
+          className="h-9 w-9 rounded-xl text-muted-foreground transition-all duration-300 hover:bg-primary/5 hover:text-foreground"
+        >
+          {isCollapsed ? (
+            <ChevronRightIcon className="h-4 w-4" />
+          ) : (
+            <ChevronLeftIcon className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
     </aside>
   );
 }
@@ -363,19 +347,12 @@ function Sidebar({ navItems, isCollapsed, onToggleCollapse, pathname }: SidebarP
 // ============================================================
 
 interface HeaderProps {
-  /** Whether the sidebar is collapsed */
   sidebarCollapsed: boolean;
-  /** Whether to show notifications button */
   showNotifications: boolean;
-  /** Custom header content */
   headerContent?: React.ReactNode;
-  /** Callback to open mobile navigation */
   onOpenMobileNav: () => void;
 }
 
-/**
- * Top header bar with user menu and optional notifications.
- */
 function Header({
   sidebarCollapsed,
   showNotifications,
@@ -396,8 +373,8 @@ function Header({
   return (
     <header
       className={cn(
-        'fixed right-0 top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 transition-all duration-300',
-        sidebarCollapsed ? 'left-16' : 'left-64',
+        'fixed right-0 top-0 z-30 flex h-20 items-center justify-between border-b border-border/50 bg-background/80 px-6 backdrop-blur-xl transition-all duration-500 ease-out',
+        sidebarCollapsed ? 'left-[72px]' : 'left-72',
         'max-lg:left-0'
       )}
       role="banner"
@@ -406,7 +383,7 @@ function Header({
       <Button
         variant="ghost"
         size="icon"
-        className="lg:hidden"
+        className="h-10 w-10 rounded-xl text-muted-foreground transition-colors hover:bg-primary/5 hover:text-foreground lg:hidden"
         onClick={onOpenMobileNav}
         aria-label="Open navigation menu"
       >
@@ -419,18 +396,16 @@ function Header({
       </div>
 
       {/* Right side actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {/* Notifications */}
         {showNotifications && (
           <Button
             variant="ghost"
             size="icon"
             aria-label="View notifications"
-            className="relative"
+            className="relative h-10 w-10 rounded-xl text-muted-foreground transition-colors hover:bg-primary/5 hover:text-foreground"
           >
             <BellIcon className="h-5 w-5" />
-            {/* Notification badge - customize as needed */}
-            {/* <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-destructive" /> */}
           </Button>
         )}
 
@@ -440,32 +415,41 @@ function Header({
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-full"
+              className="h-10 w-10 rounded-xl text-muted-foreground transition-colors hover:bg-primary/5 hover:text-foreground"
               aria-label="User menu"
             >
               <UserAvatarIcon className="h-5 w-5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/50 bg-card/95 p-2 backdrop-blur-xl">
+            <DropdownMenuLabel className="px-2 py-1.5">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Account</p>
+                <p className="text-sm font-medium leading-none text-foreground">Account</p>
                 <p className="text-xs leading-none text-muted-foreground">
                   {user?.email}
                 </p>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleProfileClick}>
+            <DropdownMenuSeparator className="bg-border/50" />
+            <DropdownMenuItem
+              onClick={handleProfileClick}
+              className="cursor-pointer rounded-lg px-2 py-2 text-muted-foreground transition-colors hover:bg-primary/5 hover:text-foreground focus:bg-primary/5"
+            >
               <UserAvatarIcon className="mr-2 h-4 w-4" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push('/settings')}>
+            <DropdownMenuItem
+              onClick={() => router.push('/settings')}
+              className="cursor-pointer rounded-lg px-2 py-2 text-muted-foreground transition-colors hover:bg-primary/5 hover:text-foreground focus:bg-primary/5"
+            >
               <SettingsIcon className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+            <DropdownMenuSeparator className="bg-border/50" />
+            <DropdownMenuItem
+              onClick={handleSignOut}
+              className="cursor-pointer rounded-lg px-2 py-2 text-destructive transition-colors hover:bg-destructive/10 focus:bg-destructive/10"
+            >
               <LogOutIcon className="mr-2 h-4 w-4" />
               Sign out
             </DropdownMenuItem>
@@ -481,37 +465,32 @@ function Header({
 // ============================================================
 
 interface MobileNavProps {
-  /** Navigation items to display */
   navItems: NavItem[];
-  /** Whether the sheet is open */
   isOpen: boolean;
-  /** Callback to close the sheet */
   onClose: () => void;
-  /** Current pathname for active state */
   pathname: string;
 }
 
-/**
- * Mobile navigation drawer that slides in from the left.
- * Used on small screens instead of the sidebar.
- */
 function MobileNav({ navItems, isOpen, onClose, pathname }: MobileNavProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="left" className="w-64 p-0">
+      <SheetContent side="left" className="w-72 border-border/50 bg-card/95 p-0 backdrop-blur-xl">
         {/* Logo / Brand */}
-        <div className="flex h-16 items-center border-b px-4">
+        <div className="flex h-20 items-center border-b border-border/50 px-4">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 font-semibold"
+            className="group flex items-center gap-3"
             onClick={onClose}
           >
-            <span className="text-xl">myTrimmy-prep</span>
+            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-primary/10">
+              <span className="font-display text-xl font-semibold text-primary">m</span>
+            </div>
+            <span className="font-display text-lg tracking-tight text-foreground">myTrimmy</span>
           </Link>
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex flex-col gap-1 p-2" aria-label="Mobile navigation">
+        <nav className="flex flex-col gap-1.5 p-3" aria-label="Mobile navigation">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
@@ -522,16 +501,19 @@ function MobileNav({ navItems, isOpen, onClose, pathname }: MobileNavProps) {
                 href={item.href}
                 onClick={onClose}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  'hover:bg-accent hover:text-accent-foreground',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  'group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300',
+                  'hover:bg-primary/5',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
                   isActive
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground'
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
                 )}
                 aria-current={isActive ? 'page' : undefined}
               >
-                {Icon && <Icon className="h-5 w-5 flex-shrink-0" />}
+                {isActive && (
+                  <div className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
+                )}
+                {Icon && <Icon className={cn('h-5 w-5 flex-shrink-0', isActive && 'text-primary')} />}
                 <span>{item.label}</span>
               </Link>
             );
@@ -547,26 +529,16 @@ function MobileNav({ navItems, isOpen, onClose, pathname }: MobileNavProps) {
 // ============================================================
 
 interface MobileBottomNavProps {
-  /** Navigation items to display (max 5 recommended) */
   navItems: NavItem[];
-  /** Current pathname for active state */
   pathname: string;
 }
 
-/**
- * Fixed bottom navigation bar for mobile devices.
- * Shows only on small screens (< lg breakpoint).
- *
- * @example
- * <MobileBottomNav navItems={navItems.slice(0, 5)} pathname={pathname} />
- */
 export function MobileBottomNav({ navItems, pathname }: MobileBottomNavProps) {
-  // Limit to 5 items for bottom nav
   const displayItems = navItems.slice(0, 5);
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background lg:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-card/95 backdrop-blur-xl lg:hidden"
       role="navigation"
       aria-label="Mobile bottom navigation"
     >
@@ -580,15 +552,17 @@ export function MobileBottomNav({ navItems, pathname }: MobileBottomNavProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs transition-colors',
-                'hover:text-primary',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
-                isActive ? 'text-primary' : 'text-muted-foreground'
+                'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs transition-all duration-300',
+                'focus-visible:outline-none',
+                isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
               )}
               aria-current={isActive ? 'page' : undefined}
             >
-              {Icon && <Icon className="h-5 w-5" />}
-              <span className="truncate">{item.label}</span>
+              {Icon && <Icon className={cn('h-5 w-5', isActive && 'text-primary')} />}
+              <span className="truncate font-medium">{item.label}</span>
+              {isActive && (
+                <div className="absolute bottom-0 h-0.5 w-8 rounded-t-full bg-primary" />
+              )}
             </Link>
           );
         })}
@@ -602,32 +576,24 @@ export function MobileBottomNav({ navItems, pathname }: MobileBottomNavProps) {
 // ============================================================
 
 interface MainContentProps {
-  /** Page content */
   children: React.ReactNode;
-  /** Whether the sidebar is collapsed */
   sidebarCollapsed: boolean;
-  /** Additional CSS classes */
   className?: string;
 }
 
-/**
- * Main content area with proper padding and responsive margins.
- */
 function MainContent({ children, sidebarCollapsed, className }: MainContentProps) {
   return (
     <main
       className={cn(
-        'min-h-screen pt-16 transition-all duration-300',
-        // Desktop: margin for sidebar
-        sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64',
-        // Mobile: no margin, but add bottom padding for bottom nav
+        'min-h-screen bg-background pt-20 transition-all duration-500 ease-out grain',
+        sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-72',
         'pb-20 lg:pb-0',
         className
       )}
       role="main"
       id="main-content"
     >
-      <div className="container mx-auto p-4 md:p-6 lg:p-8">
+      <div className="container mx-auto p-6 lg:p-8">
         {children}
       </div>
     </main>
@@ -638,17 +604,14 @@ function MainContent({ children, sidebarCollapsed, className }: MainContentProps
 // SKIP LINK COMPONENT
 // ============================================================
 
-/**
- * Accessibility skip link to bypass navigation.
- */
 function SkipLink() {
   return (
     <a
       href="#main-content"
       className={cn(
-        'fixed left-4 top-4 z-[100] rounded-md bg-primary px-4 py-2 text-primary-foreground',
+        'fixed left-4 top-4 z-[100] rounded-xl bg-primary px-4 py-2 font-medium text-primary-foreground',
         'opacity-0 focus:opacity-100',
-        'transition-opacity duration-200',
+        'transition-all duration-300',
         '-translate-y-full focus:translate-y-0'
       )}
     >
@@ -661,30 +624,6 @@ function SkipLink() {
 // DASHBOARD LAYOUT COMPONENT
 // ============================================================
 
-/**
- * Main dashboard layout wrapper with sidebar, header, and responsive navigation.
- * Wraps content in AuthGuard to require authentication.
- *
- * @example
- * // Basic usage in app/(dashboard)/layout.tsx:
- * import { DashboardLayout } from '@/components/layout/dashboard-layout';
- *
- * export default function Layout({ children }: { children: React.ReactNode }) {
- *   return <DashboardLayout>{children}</DashboardLayout>;
- * }
- *
- * @example
- * // With custom navigation:
- * <DashboardLayout
- *   navItems={[
- *     { label: 'Home', href: '/dashboard', icon: HomeIcon },
- *     { label: 'Analytics', href: '/analytics', icon: ChartIcon },
- *   ]}
- *   showNotifications
- * >
- *   {children}
- * </DashboardLayout>
- */
 export function DashboardLayout({
   children,
   navItems = defaultNavItems,
@@ -696,7 +635,6 @@ export function DashboardLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  // Persist sidebar state in localStorage
   useEffect(() => {
     const stored = localStorage.getItem('sidebar-collapsed');
     if (stored !== null) {
@@ -720,7 +658,6 @@ export function DashboardLayout({
     setMobileNavOpen(false);
   }, []);
 
-  // Close mobile nav on route change
   useEffect(() => {
     setMobileNavOpen(false);
   }, [pathname]);
@@ -730,7 +667,13 @@ export function DashboardLayout({
       <div className="min-h-screen bg-background">
         <SkipLink />
 
-        {/* Desktop Sidebar - hidden on mobile */}
+        {/* Ambient background glow */}
+        <div className="pointer-events-none fixed inset-0 overflow-hidden">
+          <div className="absolute -right-40 -top-40 h-[500px] w-[500px] rounded-full bg-primary/5 blur-[120px]" />
+          <div className="absolute -bottom-40 -left-40 h-[400px] w-[400px] rounded-full bg-primary/3 blur-[100px]" />
+        </div>
+
+        {/* Desktop Sidebar */}
         <div className="hidden lg:block">
           <Sidebar
             navItems={navItems}
@@ -772,7 +715,7 @@ export function DashboardLayout({
 }
 
 // ============================================================
-// EXPORTED COMPONENTS
+// EXPORTS
 // ============================================================
 
 export {
@@ -784,7 +727,3 @@ export {
 };
 
 export type { NavItem, DashboardLayoutProps };
-
-// ============================================================
-// GENERATED BY MENTAL MODELS SDLC
-// ============================================================

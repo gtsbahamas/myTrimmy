@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Externalize native Node.js packages for server-side use
+  serverExternalPackages: ['sharp'],
   // Skip ESLint during builds - run lint separately in CI
   eslint: {
     ignoreDuringBuilds: true,

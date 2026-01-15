@@ -10,6 +10,8 @@
  * 4. Resize - Scale to target dimensions
  * 5. Optimize - Compress for smaller file size
  * 6. Convert - Change output format
+ *
+ * Note: Background removal is handled client-side for performance.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
