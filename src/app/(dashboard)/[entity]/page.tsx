@@ -8,6 +8,14 @@
 import { notFound } from 'next/navigation';
 import { EntityPageClient, entityMap } from './entity-page-client';
 
+// Only allow statically known entities - return true 404 for unknown slugs
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  // Return all valid entity slugs
+  return Object.keys(entityMap).map((entity) => ({ entity }));
+}
+
 interface PageProps {
   params: Promise<{ entity: string }>;
 }
