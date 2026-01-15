@@ -257,6 +257,8 @@ async function handleCheckoutCompleted(
 
   // For one-time payments
   if (session.mode === 'payment') {
+    const productType = session.metadata?.productType;
+
     // Type assertion: purchases table may not exist in generated types yet
     const { error: insertError } = await (supabase as any)
       .from('purchases')
@@ -267,12 +269,34 @@ async function handleCheckoutCompleted(
         amount: session.amount_total,
         currency: session.currency,
         status: 'completed',
+        product_type: productType ?? 'unknown',
         created_at: new Date().toISOString(),
       });
 
     if (insertError) {
       console.error('[Stripe Webhook] Failed to record purchase:', insertError);
       // Non-critical - don't fail the webhook
+    }
+
+    // Grant Pro access for Pro purchases
+    if (productType === 'pro') {
+      const { error: proError } = await supabase
+        .from('profiles')
+        .update({
+          is_pro: true,
+          pro_purchased_at: new Date().toISOString(),
+        })
+        .eq('id', userId);
+
+      if (proError) {
+        console.error('[Stripe Webhook] Failed to grant Pro access:', proError);
+        return err({
+          type: 'database_error',
+          message: proError.message,
+        });
+      }
+
+      console.log('[Stripe Webhook] Pro access granted to user:', userId);
     }
   }
 
