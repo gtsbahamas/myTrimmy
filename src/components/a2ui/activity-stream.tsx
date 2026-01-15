@@ -19,6 +19,7 @@ import {
   FileType,
   Download,
   Package,
+  Eraser,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -26,7 +27,7 @@ import { formatDistanceToNow } from 'date-fns';
 export interface Activity {
   id: string;
   type: 'upload' | 'process' | 'download' | 'error';
-  action?: 'trim' | 'resize' | 'convert' | 'rotate' | 'optimize' | 'bundle';
+  action?: 'trim' | 'resize' | 'convert' | 'rotate' | 'optimize' | 'bundle' | 'removeBackground';
   status: 'pending' | 'processing' | 'completed' | 'failed';
   message: string;
   timestamp: Date;
@@ -48,6 +49,7 @@ const ACTION_ICONS = {
   optimize: RefreshCw,
   bundle: Package,
   download: Download,
+  removeBackground: Eraser,
 };
 
 const STATUS_STYLES: Record<Activity['status'], {

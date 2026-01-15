@@ -176,7 +176,7 @@ export default function DashboardPage() {
 
     const activityId = addActivity('process', `Processing: ${action}`, {
       status: 'processing',
-      action: action as 'trim' | 'resize' | 'convert' | 'rotate' | 'optimize' | 'bundle',
+      action: action as 'trim' | 'resize' | 'convert' | 'rotate' | 'optimize' | 'bundle' | 'removeBackground',
       filename: selectedImage.filename,
     });
 

@@ -4,22 +4,62 @@
  * POST /api/images/[id]/remove-background
  *
  * Uses Replicate's rembg model for high-quality background removal.
- * This replaces the client-side @imgly/background-removal which caused
- * issues with Vercel's edge runtime (WASM/multi-threading problems).
+ * Uses direct API calls instead of SDK to avoid bundling issues on Vercel.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import Replicate from 'replicate';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-// Initialize Replicate client
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-});
+interface ReplicatePrediction {
+  id: string;
+  status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
+  output?: string | null;
+  error?: string | null;
+}
+
+// Poll for prediction completion
+async function waitForPrediction(
+  predictionId: string,
+  apiToken: string,
+  maxWaitMs = 120000
+): Promise<ReplicatePrediction> {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < maxWaitMs) {
+    const response = await fetch(
+      `https://api.replicate.com/v1/predictions/${predictionId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${apiToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to get prediction status: ${response.status}`);
+    }
+
+    const prediction: ReplicatePrediction = await response.json();
+
+    if (prediction.status === 'succeeded') {
+      return prediction;
+    }
+
+    if (prediction.status === 'failed' || prediction.status === 'canceled') {
+      throw new Error(prediction.error || `Prediction ${prediction.status}`);
+    }
+
+    // Wait before polling again
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+
+  throw new Error('Prediction timed out');
+}
 
 export async function POST(
   request: NextRequest,
@@ -27,9 +67,10 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+    const apiToken = process.env.REPLICATE_API_TOKEN;
 
     // Check if API token is configured
-    if (!process.env.REPLICATE_API_TOKEN) {
+    if (!apiToken) {
       return NextResponse.json(
         { error: 'Background removal service not configured. Please add REPLICATE_API_TOKEN to environment variables.' },
         { status: 503 }
@@ -65,18 +106,39 @@ export async function POST(
     console.log(`Processing background removal for image: ${id}`);
     console.log(`Image URL: ${imageUrl}`);
 
-    // Call Replicate's rembg model
-    // Using cjwbw/rembg - high quality open-source background removal
-    const output = await replicate.run(
-      "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003",
-      {
+    // Create prediction via Replicate API
+    // Using cjwbw/rembg model
+    const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        version: 'fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003',
         input: {
           image: imageUrl,
-        }
-      }
-    );
+        },
+      }),
+    });
 
-    if (!output) {
+    if (!createResponse.ok) {
+      const errorText = await createResponse.text();
+      console.error('Replicate API error:', errorText);
+      await supabase.from('images').update({ status: 'failed' }).eq('id', id);
+      return NextResponse.json(
+        { error: `Replicate API error: ${createResponse.status}` },
+        { status: 500 }
+      );
+    }
+
+    const prediction: ReplicatePrediction = await createResponse.json();
+    console.log(`Created prediction: ${prediction.id}`);
+
+    // Wait for prediction to complete
+    const completedPrediction = await waitForPrediction(prediction.id, apiToken);
+
+    if (!completedPrediction.output) {
       await supabase.from('images').update({ status: 'failed' }).eq('id', id);
       return NextResponse.json(
         { error: 'Background removal failed - no output from model' },
@@ -84,17 +146,7 @@ export async function POST(
       );
     }
 
-    // The output is a URL to the processed image (or a ReadableStream)
-    // Replicate returns different types depending on the model
-    let outputUrl: string;
-    if (typeof output === 'string') {
-      outputUrl = output;
-    } else if (output && typeof output === 'object' && 'url' in output) {
-      outputUrl = (output as { url: string }).url;
-    } else {
-      // Handle case where output might be an array or other format
-      outputUrl = String(output);
-    }
+    const outputUrl = completedPrediction.output;
     console.log(`Replicate output URL: ${outputUrl}`);
 
     // Download the processed image from Replicate
@@ -136,8 +188,7 @@ export async function POST(
       .from('processed')
       .getPublicUrl(processedPath);
 
-    // Get image dimensions (we can estimate from buffer size, or just use original)
-    // The dimensions should remain the same after background removal
+    // Get image dimensions (dimensions remain the same after background removal)
     const width = image.width;
     const height = image.height;
 
