@@ -8,6 +8,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Smartphone, Globe, Share2, Download, Sparkles, Check } from 'lucide-react';
+import { LandingNavbar } from '@/components/landing-navbar';
 
 export default function LandingPage() {
   return (
@@ -44,18 +45,8 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          {/* Auth Buttons */}
-          <div className="flex items-center gap-4">
-            <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
-              <Link href="/login">Sign In</Link>
-            </Button>
-            <Button asChild className="glow-amber bg-primary text-primary-foreground hover:bg-primary/90">
-              <Link href="/signup">
-                Get Started
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
+          {/* Auth Buttons - Dynamic based on auth state */}
+          <LandingNavbar />
         </div>
       </nav>
 
