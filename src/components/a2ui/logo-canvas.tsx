@@ -3,6 +3,7 @@
  *
  * Displays the uploaded logo as the centerpiece with quick action pills.
  * Processing options surface on demand when actions are selected.
+ * Supports undo/redo for non-destructive editing.
  */
 
 'use client';
@@ -21,9 +22,14 @@ import {
   Check,
   RefreshCw,
   Eraser,
+  Undo2,
+  Redo2,
+  Save,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useEditSessionOptional } from '@/contexts/edit-session-context';
 
 type ProcessingAction = 'trim' | 'resize' | 'convert' | 'rotate' | 'optimize' | 'bundle' | 'removeBackground' | null;
 
@@ -38,6 +44,10 @@ interface LogoCanvasProps {
   onDownload: () => void;
   onClear: () => void;
   className?: string;
+  /** Image ID for edit session tracking */
+  imageId?: string;
+  /** Callback when edit session is saved */
+  onEditSave?: (processedUrl: string) => void;
 }
 
 const ACTION_PILLS = [
@@ -61,28 +71,106 @@ export function LogoCanvas({
   onDownload,
   onClear,
   className,
+  imageId,
+  onEditSave,
 }: LogoCanvasProps) {
   const [selectedAction, setSelectedAction] = React.useState<ProcessingAction>(null);
   const [hoveredAction, setHoveredAction] = React.useState<ProcessingAction>(null);
 
-  const handleActionClick = (action: ProcessingAction) => {
+  // Edit session context (optional - doesn't throw if not in provider)
+  const editSession = useEditSessionOptional();
+
+  // Auto-start edit session when imageId is provided
+  React.useEffect(() => {
+    if (imageId && editSession && !editSession.hasSession && !editSession.isProcessing) {
+      editSession.actions.startSession(imageId);
+    }
+  }, [imageId, editSession]);
+
+  // Keyboard shortcuts for undo/redo
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if we have an active session and are not in an input
+      if (!editSession?.hasSession) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      // Ctrl/Cmd + Z for undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        if (editSession.canUndo && !editSession.isProcessing) {
+          editSession.actions.undo();
+        }
+      }
+
+      // Ctrl/Cmd + Shift + Z for redo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        if (editSession.canRedo && !editSession.isProcessing) {
+          editSession.actions.redo();
+        }
+      }
+
+      // Ctrl/Cmd + Y for redo (alternative)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+        e.preventDefault();
+        if (editSession.canRedo && !editSession.isProcessing) {
+          editSession.actions.redo();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editSession]);
+
+  const handleActionClick = async (action: ProcessingAction) => {
     if (action === selectedAction) {
       setSelectedAction(null);
     } else {
       setSelectedAction(action);
       // For simple actions, process immediately
       if (action === 'trim') {
-        onProcess('trim');
+        // Use edit session API if available, otherwise fall back to direct processing
+        if (editSession?.hasSession) {
+          await editSession.actions.applyOperation({
+            type: 'trim',
+            params: { threshold: 10, lineArt: false },
+          });
+        } else {
+          onProcess('trim');
+        }
         setSelectedAction(null);
       } else if (action === 'removeBackground') {
+        // Background removal currently uses dedicated endpoint
         onProcess('removeBackground');
         setSelectedAction(null);
       }
     }
   };
 
-  const displayUrl = processedUrl || imageUrl;
-  const isProcessed = !!processedUrl;
+  // Handle save edit session
+  const handleSaveSession = async () => {
+    if (!editSession?.hasSession) return;
+    try {
+      const newUrl = await editSession.actions.save();
+      onEditSave?.(newUrl);
+    } catch (err) {
+      console.error('Failed to save edit session:', err);
+    }
+  };
+
+  // Handle discard edit session
+  const handleDiscardSession = async () => {
+    if (!editSession?.hasSession) return;
+    await editSession.actions.discard();
+  };
+
+  // Use edit session display URL if available, otherwise fall back to processedUrl
+  const displayUrl = editSession?.hasSession && editSession.currentDisplayUrl
+    ? editSession.currentDisplayUrl
+    : (processedUrl || imageUrl);
+  const isProcessed = !!processedUrl || (editSession?.hasSession && editSession.session?.current_position > 0);
+  const isEditProcessing = editSession?.isProcessing || false;
 
   return (
     <div className={cn("relative", className)}>
@@ -164,6 +252,76 @@ export function LogoCanvas({
               </p>
             )}
           </div>
+
+          {/* Edit session controls - Undo/Redo */}
+          {editSession?.hasSession && (
+            <div className="mt-4 flex items-center justify-center gap-2">
+              <div className="flex items-center gap-1 p-1 rounded-lg bg-card/50 border border-border/50">
+                <button
+                  onClick={() => editSession.actions.undo()}
+                  disabled={!editSession.canUndo || isProcessing || isEditProcessing}
+                  className={cn(
+                    "p-2 rounded-md transition-colors",
+                    editSession.canUndo && !isProcessing && !isEditProcessing
+                      ? "hover:bg-primary/10 text-foreground"
+                      : "text-muted-foreground/50 cursor-not-allowed"
+                  )}
+                  title="Undo (Ctrl+Z)"
+                >
+                  <Undo2 className="h-4 w-4" />
+                </button>
+                <div className="px-2 py-1 min-w-[3rem] text-center">
+                  <span className="text-xs font-medium">
+                    {editSession.session?.current_position || 0}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    /{editSession.operations.length}
+                  </span>
+                </div>
+                <button
+                  onClick={() => editSession.actions.redo()}
+                  disabled={!editSession.canRedo || isProcessing || isEditProcessing}
+                  className={cn(
+                    "p-2 rounded-md transition-colors",
+                    editSession.canRedo && !isProcessing && !isEditProcessing
+                      ? "hover:bg-primary/10 text-foreground"
+                      : "text-muted-foreground/50 cursor-not-allowed"
+                  )}
+                  title="Redo (Ctrl+Shift+Z)"
+                >
+                  <Redo2 className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Save/Discard buttons */}
+              <button
+                onClick={handleSaveSession}
+                disabled={isProcessing || isEditProcessing}
+                className={cn(
+                  "p-2 rounded-md transition-colors",
+                  !isProcessing && !isEditProcessing
+                    ? "hover:bg-green-500/10 text-green-500"
+                    : "text-muted-foreground/50 cursor-not-allowed"
+                )}
+                title="Save changes"
+              >
+                <Save className="h-4 w-4" />
+              </button>
+              <button
+                onClick={handleDiscardSession}
+                disabled={isProcessing || isEditProcessing}
+                className={cn(
+                  "p-2 rounded-md transition-colors",
+                  !isProcessing && !isEditProcessing
+                    ? "hover:bg-red-500/10 text-red-500"
+                    : "text-muted-foreground/50 cursor-not-allowed"
+                )}
+                title="Discard changes"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Action pills + surface */}

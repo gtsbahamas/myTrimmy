@@ -183,6 +183,7 @@ export type Database = {
           updated_at: string
           user_id: string
           width: number | null
+          active_edit_session_id: string | null
         }
         Insert: {
           created_at?: string
@@ -197,6 +198,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           width?: number | null
+          active_edit_session_id?: string | null
         }
         Update: {
           created_at?: string
@@ -211,6 +213,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           width?: number | null
+          active_edit_session_id?: string | null
         }
         Relationships: [
           {
@@ -218,6 +221,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "images_active_edit_session_id_fkey"
+            columns: ["active_edit_session_id"]
+            isOneToOne: false
+            referencedRelation: "edit_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -334,6 +344,104 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      edit_sessions: {
+        Row: {
+          id: string
+          image_id: string
+          user_id: string
+          current_position: number
+          current_snapshot_url: string | null
+          status: string
+          created_at: string
+          updated_at: string
+          saved_at: string | null
+          version: number
+        }
+        Insert: {
+          id?: string
+          image_id: string
+          user_id: string
+          current_position?: number
+          current_snapshot_url?: string | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+          saved_at?: string | null
+          version?: number
+        }
+        Update: {
+          id?: string
+          image_id?: string
+          user_id?: string
+          current_position?: number
+          current_snapshot_url?: string | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+          saved_at?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edit_sessions_image_id_fkey"
+            columns: ["image_id"]
+            isOneToOne: false
+            referencedRelation: "images"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edit_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      edit_operations: {
+        Row: {
+          id: string
+          session_id: string
+          position: number
+          operation_type: string
+          params: Json
+          pre_snapshot_url: string | null
+          post_snapshot_url: string | null
+          created_at: string
+          duration_ms: number | null
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          position: number
+          operation_type: string
+          params?: Json
+          pre_snapshot_url?: string | null
+          post_snapshot_url?: string | null
+          created_at?: string
+          duration_ms?: number | null
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          position?: number
+          operation_type?: string
+          params?: Json
+          pre_snapshot_url?: string | null
+          post_snapshot_url?: string | null
+          created_at?: string
+          duration_ms?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edit_operations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "edit_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

@@ -16,6 +16,7 @@ import {
   GalleryRail,
   useActivityStream,
 } from '@/components/a2ui';
+import { EditSessionProvider, useEditSession } from '@/contexts/edit-session-context';
 import type { Tables } from '@/types/database';
 
 type ImageRecord = Tables<'images'>;
@@ -384,17 +385,31 @@ export default function DashboardPage() {
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         {selectedImage ? (
           /* Logo Canvas - when image is selected */
-          <LogoCanvas
-            imageUrl={selectedImage.processed_url || selectedImage.original_url}
-            filename={selectedImage.filename}
-            width={selectedImage.width}
-            height={selectedImage.height}
-            isProcessing={isProcessing}
-            processedUrl={selectedImage.processed_url}
-            onProcess={handleProcess}
-            onDownload={() => handleDownload()}
-            onClear={handleClear}
-          />
+          <EditSessionProvider
+            originalUrl={selectedImage.original_url}
+            key={selectedImage.id}
+          >
+            <LogoCanvas
+              imageUrl={selectedImage.processed_url || selectedImage.original_url}
+              filename={selectedImage.filename}
+              width={selectedImage.width}
+              height={selectedImage.height}
+              isProcessing={isProcessing}
+              processedUrl={selectedImage.processed_url}
+              onProcess={handleProcess}
+              onDownload={() => handleDownload()}
+              onClear={handleClear}
+              imageId={selectedImage.id}
+              onEditSave={(processedUrl) => {
+                // Update local state when edit session is saved
+                const updatedImage = { ...selectedImage, processed_url: processedUrl };
+                setSelectedImage(updatedImage);
+                setImages(prev =>
+                  prev.map(img => img.id === selectedImage.id ? updatedImage : img)
+                );
+              }}
+            />
+          </EditSessionProvider>
         ) : (
           /* Hero Drop Zone - when no image selected */
           <HeroDropZone
