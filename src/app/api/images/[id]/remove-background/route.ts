@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient, getAuthFromRequest } from '@/lib/supabase/server';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -67,19 +67,25 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
 
-    // Verify user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Authenticate via session or API key
+    const auth = await getAuthFromRequest(request);
+    if (!auth.authenticated) {
+      return NextResponse.json({ error: auth.error }, { status: 401 });
     }
+
+    // Use service role client for API key auth (bypasses RLS), otherwise regular client
+    const supabase = auth.method === 'api_key'
+      ? createServiceRoleClient()
+      : await createClient();
+
+    const userId = auth.userId;
 
     // Get user's profile to check for their own API key
     const { data: profile } = await supabase
       .from('profiles')
       .select('replicate_api_key')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single();
 
     // Use user's API key if available, otherwise fall back to app's key
@@ -100,7 +106,7 @@ export async function POST(
       .from('images')
       .select('*')
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     if (fetchError || !image) {
@@ -176,7 +182,7 @@ export async function POST(
     // Generate filename for processed image
     const baseName = image.filename.replace(/\.[^/.]+$/, '');
     const processedFilename = `${baseName}-nobg.png`;
-    const processedPath = `${user.id}/${Date.now()}-${processedFilename}`;
+    const processedPath = `${userId}/${Date.now()}-${processedFilename}`;
 
     // Upload to Supabase storage
     const { error: uploadError } = await supabase.storage

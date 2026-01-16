@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient, getAuthFromRequest } from '@/lib/supabase/server';
 import sharp from 'sharp';
 
 interface ProcessSettings {
@@ -309,12 +309,18 @@ async function processImage(
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Authenticate via session or API key
+    const auth = await getAuthFromRequest(request);
+    if (!auth.authenticated) {
+      return NextResponse.json({ error: auth.error }, { status: 401 });
     }
+
+    // Use service role client for API key auth (bypasses RLS), otherwise regular client
+    const supabase = auth.method === 'api_key'
+      ? createServiceRoleClient()
+      : await createClient();
+
+    const userId = auth.userId;
 
     const body: BatchRequest = await request.json();
     const { imageIds, presetId } = body;
@@ -327,7 +333,7 @@ export async function POST(request: NextRequest) {
         .from('presets')
         .select('settings')
         .eq('id', presetId)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
       if (preset?.settings) {
@@ -378,7 +384,7 @@ export async function POST(request: NextRequest) {
       .from('images')
       .select('*')
       .in('id', imageIds)
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (fetchError) {
       return NextResponse.json({ error: fetchError.message }, { status: 500 });
@@ -396,7 +402,7 @@ export async function POST(request: NextRequest) {
 
         const storagePath = image.original_url.includes('/storage/v1/object/public/')
           ? image.original_url.split('/storage/v1/object/public/images/')[1]
-          : `${user.id}/${image.original_url.split('/').pop()}`;
+          : `${userId}/${image.original_url.split('/').pop()}`;
 
         const { data: fileData, error: downloadError } = await supabase.storage
           .from('images')
@@ -427,7 +433,7 @@ export async function POST(request: NextRequest) {
         const baseName = image.filename.replace(/\.[^/.]+$/, '');
         const suffix = operations.length > 1 ? '-processed' : '-trimmed';
         const processedFilename = `${baseName}${suffix}.${extension}`;
-        const processedPath = `${user.id}/${Date.now()}-${processedFilename}`;
+        const processedPath = `${userId}/${Date.now()}-${processedFilename}`;
 
         const { error: uploadError } = await supabase.storage
           .from('processed')

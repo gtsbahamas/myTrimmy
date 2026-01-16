@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
-import { createClient } from '@/lib/supabase/server';
+import { getAuthFromRequest } from '@/lib/supabase/server';
 import { safeValidateAssetBundleInput } from '@/lib/validation/asset-bundle';
 import { createAssetBundleWithCounts, getAssetCount } from '@/lib/asset-generator';
 import {
@@ -23,15 +23,10 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Authentication check
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // 1. Authentication check (via session or API key)
+    const auth = await getAuthFromRequest(request);
+    if (!auth.authenticated) {
+      return NextResponse.json({ error: auth.error }, { status: 401 });
     }
 
     // 2. Parse multipart form data

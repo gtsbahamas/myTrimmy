@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient, getAuthFromRequest } from '@/lib/supabase/server';
 import type { Json } from '@/types/database';
 import type { ProcessSettings, PresetInput } from '../route';
 
@@ -21,18 +21,25 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Authenticate via session or API key
+    const auth = await getAuthFromRequest(request);
+    if (!auth.authenticated) {
+      return NextResponse.json({ error: auth.error }, { status: 401 });
     }
+
+    // Use service role client for API key auth (bypasses RLS), otherwise regular client
+    const supabase = auth.method === 'api_key'
+      ? createServiceRoleClient()
+      : await createClient();
+
+    const userId = auth.userId;
 
     const { data: preset, error } = await supabase
       .from('presets')
       .select('*')
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     if (error || !preset) {
@@ -57,19 +64,26 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Authenticate via session or API key
+    const auth = await getAuthFromRequest(request);
+    if (!auth.authenticated) {
+      return NextResponse.json({ error: auth.error }, { status: 401 });
     }
+
+    // Use service role client for API key auth (bypasses RLS), otherwise regular client
+    const supabase = auth.method === 'api_key'
+      ? createServiceRoleClient()
+      : await createClient();
+
+    const userId = auth.userId;
 
     // Verify ownership
     const { data: existing } = await supabase
       .from('presets')
       .select('id')
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     if (!existing) {
@@ -113,7 +127,7 @@ export async function PATCH(
         await supabase
           .from('presets')
           .update({ is_default: false })
-          .eq('user_id', user.id);
+          .eq('user_id', userId);
       }
       updates.is_default = body.is_default;
     }
@@ -149,18 +163,25 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Authenticate via session or API key
+    const auth = await getAuthFromRequest(request);
+    if (!auth.authenticated) {
+      return NextResponse.json({ error: auth.error }, { status: 401 });
     }
+
+    // Use service role client for API key auth (bypasses RLS), otherwise regular client
+    const supabase = auth.method === 'api_key'
+      ? createServiceRoleClient()
+      : await createClient();
+
+    const userId = auth.userId;
 
     const { error } = await supabase
       .from('presets')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

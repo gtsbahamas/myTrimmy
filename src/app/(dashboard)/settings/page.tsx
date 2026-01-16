@@ -465,29 +465,70 @@ function AccountSettings() {
 // API KEYS SETTINGS
 // ============================================================
 
-const APIKeySchema = z.object({
+interface MyTrimmyApiKey {
+  id: string;
+  name: string;
+  key_prefix: string;
+  key_suffix: string;
+  created_at: string;
+  last_used_at: string | null;
+}
+
+const ReplicateKeySchema = z.object({
   replicateApiKey: z.string().optional(),
 });
 
-type APIKeyFormData = z.infer<typeof APIKeySchema>;
+type ReplicateKeyFormData = z.infer<typeof ReplicateKeySchema>;
 
 function APIKeysSettings() {
   const { user } = useAuth();
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
-  const [hasKey, setHasKey] = React.useState(false);
-  const [showKey, setShowKey] = React.useState(false);
 
-  const form = useForm<APIKeyFormData>({
-    resolver: zodResolver(APIKeySchema),
+  // myTrimmy API Keys state
+  const [apiKeys, setApiKeys] = React.useState<MyTrimmyApiKey[]>([]);
+  const [loadingKeys, setLoadingKeys] = React.useState(true);
+  const [isCreating, setIsCreating] = React.useState(false);
+  const [newKeyName, setNewKeyName] = React.useState('');
+  const [newlyCreatedKey, setNewlyCreatedKey] = React.useState<string | null>(null);
+  const [copied, setCopied] = React.useState(false);
+  const [revokingId, setRevokingId] = React.useState<string | null>(null);
+
+  // Replicate (3rd party) key state
+  const [hasReplicateKey, setHasReplicateKey] = React.useState(false);
+  const [showReplicateKey, setShowReplicateKey] = React.useState(false);
+
+  const replicateForm = useForm<ReplicateKeyFormData>({
+    resolver: zodResolver(ReplicateKeySchema),
     defaultValues: {
       replicateApiKey: '',
     },
   });
 
-  // Load existing API key status
+  // Load myTrimmy API keys
   React.useEffect(() => {
-    async function loadAPIKeys() {
+    async function loadApiKeys() {
+      try {
+        const response = await fetch('/api/api-keys');
+        const data = await response.json();
+        if (data.success) {
+          setApiKeys(data.data);
+        }
+      } catch (err) {
+        console.error('Failed to load API keys:', err);
+      } finally {
+        setLoadingKeys(false);
+      }
+    }
+
+    if (user?.id) {
+      loadApiKeys();
+    }
+  }, [user?.id]);
+
+  // Load Replicate API key status
+  React.useEffect(() => {
+    async function loadReplicateKey() {
       if (!user?.id) return;
       const supabase = createClient();
       const { data } = await supabase
@@ -497,15 +538,94 @@ function APIKeysSettings() {
         .single();
 
       if (data?.replicate_api_key) {
-        setHasKey(true);
-        // Don't show the actual key, just indicate it exists
-        form.setValue('replicateApiKey', '••••••••••••••••');
+        setHasReplicateKey(true);
+        replicateForm.setValue('replicateApiKey', '••••••••••••••••');
       }
     }
-    loadAPIKeys();
-  }, [user?.id, form]);
+    loadReplicateKey();
+  }, [user?.id, replicateForm]);
 
-  async function handleSubmit(data: APIKeyFormData) {
+  // Create new myTrimmy API key
+  async function handleCreateKey() {
+    if (!newKeyName.trim()) {
+      setError('Please enter a name for your API key');
+      return;
+    }
+
+    setError(null);
+    setIsCreating(true);
+
+    try {
+      const response = await fetch('/api/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newKeyName.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to create API key');
+        return;
+      }
+
+      // Show the full key ONCE
+      setNewlyCreatedKey(data.data.key);
+      setApiKeys(prev => [data.data, ...prev]);
+      setNewKeyName('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create API key');
+    } finally {
+      setIsCreating(false);
+    }
+  }
+
+  // Copy key to clipboard
+  async function handleCopyKey() {
+    if (!newlyCreatedKey) return;
+    try {
+      await navigator.clipboard.writeText(newlyCreatedKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('Failed to copy to clipboard');
+    }
+  }
+
+  // Close the new key modal
+  function handleCloseNewKeyModal() {
+    setNewlyCreatedKey(null);
+    setCopied(false);
+    setSuccess('API key created successfully');
+  }
+
+  // Revoke API key
+  async function handleRevokeKey(id: string) {
+    setRevokingId(id);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/api-keys/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || 'Failed to revoke API key');
+        return;
+      }
+
+      setApiKeys(prev => prev.filter(k => k.id !== id));
+      setSuccess('API key revoked');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to revoke API key');
+    } finally {
+      setRevokingId(null);
+    }
+  }
+
+  // Replicate key handlers
+  async function handleReplicateSubmit(data: ReplicateKeyFormData) {
     if (!user?.id) return;
 
     setError(null);
@@ -514,7 +634,6 @@ function APIKeysSettings() {
     try {
       const supabase = createClient();
 
-      // Don't update if user hasn't changed the masked key
       const keyToSave = data.replicateApiKey === '••••••••••••••••'
         ? undefined
         : data.replicateApiKey || null;
@@ -533,20 +652,20 @@ function APIKeysSettings() {
           return;
         }
 
-        setHasKey(!!keyToSave);
+        setHasReplicateKey(!!keyToSave);
         if (keyToSave) {
-          form.setValue('replicateApiKey', '••••••••••••••••');
+          replicateForm.setValue('replicateApiKey', '••••••••••••••••');
         }
       }
 
-      setSuccess('API key updated successfully.');
-      setShowKey(false);
+      setSuccess('Replicate API key updated successfully.');
+      setShowReplicateKey(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update API key');
     }
   }
 
-  async function handleRemoveKey() {
+  async function handleRemoveReplicateKey() {
     if (!user?.id) return;
 
     setError(null);
@@ -567,98 +686,267 @@ function APIKeysSettings() {
         return;
       }
 
-      setHasKey(false);
-      form.setValue('replicateApiKey', '');
-      setSuccess('API key removed.');
+      setHasReplicateKey(false);
+      replicateForm.setValue('replicateApiKey', '');
+      setSuccess('Replicate API key removed.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove API key');
     }
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>API Keys</CardTitle>
-        <CardDescription>
-          Add your own API keys for unlimited access to premium features.
-          Your keys are encrypted at rest and never shared.
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={form.handleSubmit(handleSubmit)}>
+    <div className="space-y-6">
+      {/* myTrimmy API Keys */}
+      <Card>
+        <CardHeader>
+          <CardTitle>myTrimmy API Keys</CardTitle>
+          <CardDescription>
+            Create API keys to access myTrimmy programmatically. Use these keys to integrate
+            image processing into your own applications.
+          </CardDescription>
+        </CardHeader>
         <CardContent className="space-y-6">
           <FormError message={error} />
           <FormSuccess message={success} />
 
-          {/* Replicate API Key */}
-          <div className="space-y-4 rounded-lg border border-border/50 p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <h4 className="font-medium">Replicate API Key</h4>
-                <p className="text-sm text-muted-foreground">
-                  Used for AI-powered background removal. Get your key at{' '}
-                  <a
-                    href="https://replicate.com/account/api-tokens"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    replicate.com
-                  </a>
+          {/* Create New Key */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="Key name (e.g., Production, Development)"
+              value={newKeyName}
+              onChange={(e) => setNewKeyName(e.target.value)}
+              disabled={isCreating}
+              className="max-w-sm"
+            />
+            <Button onClick={handleCreateKey} disabled={isCreating || !newKeyName.trim()}>
+              {isCreating ? 'Creating...' : 'Create Key'}
+            </Button>
+          </div>
+
+          {/* Existing Keys List */}
+          {loadingKeys ? (
+            <p className="text-sm text-muted-foreground">Loading keys...</p>
+          ) : apiKeys.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                No API keys yet. Create one to get started.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {apiKeys.map((key) => (
+                <div
+                  key={key.id}
+                  className="flex items-center justify-between rounded-lg border p-3"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{key.name}</span>
+                      <code className="rounded bg-muted px-2 py-0.5 text-xs font-mono">
+                        {key.key_prefix}...{key.key_suffix}
+                      </code>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Created {new Date(key.created_at).toLocaleDateString()}
+                      {key.last_used_at && (
+                        <> · Last used {new Date(key.last_used_at).toLocaleDateString()}</>
+                      )}
+                    </p>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        disabled={revokingId === key.id}
+                      >
+                        {revokingId === key.id ? 'Revoking...' : 'Revoke'}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Revoke API Key</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to revoke &quot;{key.name}&quot;? Any applications
+                          using this key will immediately lose access.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleRevokeKey(key.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Revoke Key
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Usage Example */}
+          <div className="rounded-lg bg-muted/50 p-4 space-y-2">
+            <h4 className="text-sm font-medium">Usage Example</h4>
+            <pre className="rounded bg-background p-3 text-xs font-mono overflow-x-auto">
+{`curl -X GET "https://mytrimmy.com/api/presets" \\
+  -H "Authorization: Bearer mt_live_your_key_here"`}
+            </pre>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* New Key Created Modal */}
+      <AlertDialog open={!!newlyCreatedKey} onOpenChange={() => {}}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              API Key Created
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3">
+                  <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
+                    Copy this key now — you won&apos;t be able to see it again!
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Your API Key</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newlyCreatedKey || ''}
+                      readOnly
+                      className="font-mono text-sm"
+                    />
+                    <Button
+                      type="button"
+                      variant={copied ? 'default' : 'outline'}
+                      onClick={handleCopyKey}
+                      className="shrink-0"
+                    >
+                      {copied ? (
+                        <>
+                          <svg className="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <svg className="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Store this key securely. For security reasons, we only show the full key once.
+                  If you lose it, you&apos;ll need to create a new one.
                 </p>
               </div>
-              {hasKey && (
-                <span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-500">
-                  Configured
-                </span>
-              )}
-            </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={handleCloseNewKeyModal}>
+              I&apos;ve copied my key
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-            <div className="space-y-2">
-              <Label htmlFor="replicateApiKey">API Key</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="replicateApiKey"
-                  type={showKey ? 'text' : 'password'}
-                  placeholder="r8_xxxxxxxxxxxx"
-                  {...form.register('replicateApiKey')}
-                  disabled={form.formState.isSubmitting}
-                  className="font-mono"
-                />
+      {/* Third-Party API Keys */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Third-Party API Keys</CardTitle>
+          <CardDescription>
+            Add your own API keys for unlimited access to premium features.
+            Your keys are encrypted at rest and never shared.
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={replicateForm.handleSubmit(handleReplicateSubmit)}>
+          <CardContent className="space-y-6">
+            {/* Replicate API Key */}
+            <div className="space-y-4 rounded-lg border border-border/50 p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="font-medium">Replicate API Key</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Used for AI-powered background removal. Get your key at{' '}
+                    <a
+                      href="https://replicate.com/account/api-tokens"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      replicate.com
+                    </a>
+                  </p>
+                </div>
+                {hasReplicateKey && (
+                  <span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-500">
+                    Configured
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="replicateApiKey">API Key</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="replicateApiKey"
+                    type={showReplicateKey ? 'text' : 'password'}
+                    placeholder="r8_xxxxxxxxxxxx"
+                    {...replicateForm.register('replicateApiKey')}
+                    disabled={replicateForm.formState.isSubmitting}
+                    className="font-mono"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowReplicateKey(!showReplicateKey)}
+                  >
+                    {showReplicateKey ? 'Hide' : 'Show'}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Without your own key, you&apos;ll use the shared pool (limited usage).
+                  With your own key, usage is unlimited and billed directly to your Replicate account.
+                </p>
+              </div>
+
+              {hasReplicateKey && (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowKey(!showKey)}
+                  onClick={handleRemoveReplicateKey}
+                  className="text-destructive hover:text-destructive"
                 >
-                  {showKey ? 'Hide' : 'Show'}
+                  Remove Key
                 </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Without your own key, you&apos;ll use the shared pool (limited usage).
-                With your own key, usage is unlimited and billed directly to your Replicate account.
-              </p>
+              )}
             </div>
-
-            {hasKey && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleRemoveKey}
-                className="text-destructive hover:text-destructive"
-              >
-                Remove Key
-              </Button>
-            )}
-          </div>
-        </CardContent>
-        <CardFooter>
-          <SubmitButton isSubmitting={form.formState.isSubmitting}>
-            Save API Keys
-          </SubmitButton>
-        </CardFooter>
-      </form>
-    </Card>
+          </CardContent>
+          <CardFooter>
+            <SubmitButton isSubmitting={replicateForm.formState.isSubmitting}>
+              Save Replicate Key
+            </SubmitButton>
+          </CardFooter>
+        </form>
+      </Card>
+    </div>
   );
 }
 

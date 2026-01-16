@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_keys: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          key_prefix: string
+          key_suffix: string
+          key_hash: string
+          permissions: Json
+          created_at: string
+          last_used_at: string | null
+          revoked_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          key_prefix: string
+          key_suffix: string
+          key_hash: string
+          permissions?: Json
+          created_at?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          key_prefix?: string
+          key_suffix?: string
+          key_hash?: string
+          permissions?: Json
+          created_at?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       batch_images: {
         Row: {
           batch_job_id: string

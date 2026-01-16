@@ -3,10 +3,12 @@
  *
  * GET /api/presets - List all presets for the current user
  * POST /api/presets - Create a new preset
+ *
+ * Supports both session auth and API key auth.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient, getAuthFromRequest } from '@/lib/supabase/server';
 import type { Json } from '@/types/database';
 
 export interface ProcessSettings {
@@ -39,19 +41,24 @@ export interface PresetInput {
   is_default?: boolean;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Support both session and API key auth
+    const auth = await getAuthFromRequest(request);
+    if (!auth.authenticated) {
+      return NextResponse.json({ error: auth.error }, { status: 401 });
     }
+
+    // Use service role client for API key auth (no session for RLS)
+    // Use regular client for session auth (RLS will work)
+    const supabase = auth.method === 'api_key'
+      ? createServiceRoleClient()
+      : await createClient();
 
     const { data: presets, error } = await supabase
       .from('presets')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -72,12 +79,15 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Support both session and API key auth
+    const auth = await getAuthFromRequest(request);
+    if (!auth.authenticated) {
+      return NextResponse.json({ error: auth.error }, { status: 401 });
     }
+
+    const supabase = auth.method === 'api_key'
+      ? createServiceRoleClient()
+      : await createClient();
 
     const body: PresetInput = await request.json();
 
@@ -107,13 +117,13 @@ export async function POST(request: NextRequest) {
       await supabase
         .from('presets')
         .update({ is_default: false })
-        .eq('user_id', user.id);
+        .eq('user_id', auth.userId);
     }
 
     const { data: preset, error } = await supabase
       .from('presets')
       .insert({
-        user_id: user.id,
+        user_id: auth.userId,
         name: body.name.trim(),
         description: body.description?.trim() || null,
         settings: body.settings as unknown as Json,
