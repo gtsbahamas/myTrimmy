@@ -18,8 +18,9 @@ import {
   type PlatformAssetCounts,
 } from '@/types/asset-bundle';
 import type { ValidatedAssetBundleInput } from '@/lib/validation/asset-bundle';
-import { generateAsset } from './image-generator';
+import { generateAsset, createLightDarkVariants } from './image-generator';
 import { createIcoFile } from './ico-generator';
+import sharp from 'sharp';
 import {
   generateManifest,
   generateBrowserconfig,
@@ -45,6 +46,9 @@ export interface BundleResult {
   readonly platformCounts: PlatformAssetCounts;
 }
 
+/** Mode variant for asset generation */
+type ColorMode = 'light' | 'dark';
+
 /**
  * Create a complete asset bundle as a ZIP file.
  *
@@ -62,6 +66,7 @@ export async function createAssetBundle(
 
 /**
  * Create a complete asset bundle with platform-specific counts.
+ * Generates three variants: original, light-mode (transparent), dark-mode (inverted).
  */
 export async function createAssetBundleWithCounts(
   sourceBuffer: Buffer,
@@ -90,91 +95,129 @@ export async function createAssetBundleWithCounts(
     archive.on('error', reject);
 
     try {
-      // Generate iOS assets
-      if (platforms.ios) {
-        const iosResult = await generateIOSAssets(sourceBuffer);
-        for (const asset of iosResult.assets) {
-          archive.append(asset.buffer, { name: asset.filename });
-        }
-        // Add iOS Contents.json
-        archive.append(generateIOSContentsJson(), {
-          name: 'ios/AppIcon.appiconset/Contents.json',
-        });
-        (counts as { ios: number }).ios = iosResult.assetCount;
-      }
+      // =========================================================================
+      // 1. Create light and dark mode variants
+      // =========================================================================
+      const { light: lightLogo, dark: darkLogo } = await createLightDarkVariants(sourceBuffer);
 
-      // Generate Android assets
-      if (platforms.android) {
-        const androidResult = await generateAndroidAssets(
-          sourceBuffer,
-          config.backgroundColor
-        );
-        for (const asset of androidResult.assets) {
-          archive.append(asset.buffer, { name: asset.filename });
-        }
-        // Add Android config files
-        archive.append(generateAdaptiveIconXml(config.backgroundColor), {
-          name: 'android/mipmap-anydpi-v26/ic_launcher.xml',
-        });
-        archive.append(generateAdaptiveRoundIconXml(), {
-          name: 'android/mipmap-anydpi-v26/ic_launcher_round.xml',
-        });
-        archive.append(generateColorsXml(config.backgroundColor), {
-          name: 'android/values/colors.xml',
-        });
-        (counts as { android: number }).android = androidResult.assetCount;
-      }
+      // =========================================================================
+      // 2. Add original logo
+      // =========================================================================
+      const originalPng = await sharp(sourceBuffer).png().toBuffer();
+      archive.append(originalPng, { name: 'original/logo.png' });
 
-      // Generate Web assets
-      if (platforms.web) {
-        const webSpecs = WEB_ASSETS;
-        for (const spec of webSpecs) {
-          let buffer: Buffer;
+      // =========================================================================
+      // 3. Add light-mode transparent logo
+      // =========================================================================
+      archive.append(lightLogo, { name: 'light-mode/logo-transparent.png' });
 
-          if (spec.format === 'ico') {
-            buffer = await createIcoFile(sourceBuffer);
-          } else {
-            buffer = await generateAsset(
-              sourceBuffer,
-              spec,
-              config.backgroundColor
-            );
+      // =========================================================================
+      // 4. Add dark-mode transparent logo
+      // =========================================================================
+      archive.append(darkLogo, { name: 'dark-mode/logo-transparent.png' });
+
+      // =========================================================================
+      // 5. Generate platform assets for BOTH light and dark modes
+      // =========================================================================
+      const modes: { mode: ColorMode; logo: Buffer; bgColor: string }[] = [
+        { mode: 'light', logo: lightLogo, bgColor: '#ffffff' },
+        { mode: 'dark', logo: darkLogo, bgColor: '#000000' },
+      ];
+
+      for (const { mode, logo, bgColor } of modes) {
+        const modePrefix = `${mode}-mode`;
+
+        // Generate iOS assets
+        if (platforms.ios) {
+          const iosResult = await generateIOSAssets(logo);
+          for (const asset of iosResult.assets) {
+            // Change path from ios/ to {mode}-mode/ios/
+            const newPath = asset.filename.replace('ios/', `${modePrefix}/ios/`);
+            archive.append(asset.buffer, { name: newPath });
           }
-
-          archive.append(buffer, { name: spec.filename });
+          archive.append(generateIOSContentsJson(), {
+            name: `${modePrefix}/ios/AppIcon.appiconset/Contents.json`,
+          });
+          if (mode === 'light') {
+            (counts as { ios: number }).ios = iosResult.assetCount;
+          }
         }
-        // Add web config files
-        archive.append(generateManifest(config), { name: 'web/manifest.json' });
-        archive.append(generateBrowserconfig(config), {
-          name: 'web/browserconfig.xml',
-        });
-        (counts as { web: number }).web = webSpecs.length;
+
+        // Generate Android assets
+        if (platforms.android) {
+          const androidResult = await generateAndroidAssets(logo, bgColor);
+          for (const asset of androidResult.assets) {
+            const newPath = asset.filename.replace('android/', `${modePrefix}/android/`);
+            archive.append(asset.buffer, { name: newPath });
+          }
+          archive.append(generateAdaptiveIconXml(bgColor), {
+            name: `${modePrefix}/android/mipmap-anydpi-v26/ic_launcher.xml`,
+          });
+          archive.append(generateAdaptiveRoundIconXml(), {
+            name: `${modePrefix}/android/mipmap-anydpi-v26/ic_launcher_round.xml`,
+          });
+          archive.append(generateColorsXml(bgColor), {
+            name: `${modePrefix}/android/values/colors.xml`,
+          });
+          if (mode === 'light') {
+            (counts as { android: number }).android = androidResult.assetCount;
+          }
+        }
+
+        // Generate Web assets
+        if (platforms.web) {
+          const webSpecs = WEB_ASSETS;
+          for (const spec of webSpecs) {
+            let buffer: Buffer;
+
+            if (spec.format === 'ico') {
+              buffer = await createIcoFile(logo);
+            } else {
+              buffer = await generateAsset(logo, spec, bgColor);
+            }
+
+            const newPath = spec.filename.replace('web/', `${modePrefix}/web/`);
+            archive.append(buffer, { name: newPath });
+          }
+          archive.append(generateManifest({ ...config, backgroundColor: bgColor }), {
+            name: `${modePrefix}/web/manifest.json`,
+          });
+          archive.append(generateBrowserconfig({ ...config, backgroundColor: bgColor }), {
+            name: `${modePrefix}/web/browserconfig.xml`,
+          });
+          if (mode === 'light') {
+            (counts as { web: number }).web = webSpecs.length;
+          }
+        }
+
+        // Generate Social assets
+        if (platforms.social) {
+          const socialSpecs = SOCIAL_ASSETS;
+          for (const spec of socialSpecs) {
+            const buffer = await generateAsset(logo, spec, bgColor);
+            const newPath = spec.filename.replace('social/', `${modePrefix}/social/`);
+            archive.append(buffer, { name: newPath });
+          }
+          if (mode === 'light') {
+            (counts as { social: number }).social = socialSpecs.length;
+          }
+        }
       }
 
-      // Generate Social assets
-      if (platforms.social) {
-        const socialSpecs = SOCIAL_ASSETS;
-        for (const spec of socialSpecs) {
-          const buffer = await generateAsset(
-            sourceBuffer,
-            spec,
-            config.backgroundColor
-          );
-          archive.append(buffer, { name: spec.filename });
-        }
-        (counts as { social: number }).social = socialSpecs.length;
-      }
-
-      // Calculate total
+      // Calculate total (multiply by 2 for both modes, +3 for original/transparent logos)
       (counts as { total: number }).total =
-        counts.ios + counts.android + counts.web + counts.social;
+        (counts.ios + counts.android + counts.web + counts.social) * 2 + 3;
 
-      // Add README
-      archive.append(generateReadmeWithPlatforms(config, platforms, counts), {
+      // =========================================================================
+      // 6. Add README with new structure documentation
+      // =========================================================================
+      archive.append(generateReadmeWithModes(config, platforms, counts), {
         name: 'README.md',
       });
 
-      // Add framework code snippets
+      // =========================================================================
+      // 7. Add framework code snippets (in code/ folder)
+      // =========================================================================
       archive.append(generateNextJsIcon(config), {
         name: 'code/nextjs/icon.tsx',
       });
@@ -194,6 +237,13 @@ export async function createAssetBundleWithCounts(
         name: 'code/html/head.html',
       });
 
+      // =========================================================================
+      // 8. Add manifest.json for bundle metadata
+      // =========================================================================
+      archive.append(generateBundleManifest(config, counts), {
+        name: 'manifest.json',
+      });
+
       // Finalize the archive
       await archive.finalize();
     } catch (error) {
@@ -203,9 +253,44 @@ export async function createAssetBundleWithCounts(
 }
 
 /**
- * Generate README with platform-specific information.
+ * Generate bundle manifest with all variants documented.
  */
-function generateReadmeWithPlatforms(
+function generateBundleManifest(
+  config: ValidatedAssetBundleInput,
+  counts: PlatformAssetCounts
+): string {
+  return JSON.stringify(
+    {
+      name: config.appName,
+      generatedAt: new Date().toISOString(),
+      generator: 'Iconym',
+      variants: {
+        original: {
+          description: 'Original logo as uploaded',
+          path: 'original/logo.png',
+        },
+        lightMode: {
+          description: 'Transparent logo for light backgrounds',
+          path: 'light-mode/',
+          assets: counts,
+        },
+        darkMode: {
+          description: 'Inverted transparent logo for dark backgrounds',
+          path: 'dark-mode/',
+          assets: counts,
+        },
+      },
+      totalAssets: counts.total,
+    },
+    null,
+    2
+  );
+}
+
+/**
+ * Generate README with light/dark mode structure documentation.
+ */
+function generateReadmeWithModes(
   config: ValidatedAssetBundleInput,
   platforms: PlatformSelection,
   counts: PlatformAssetCounts
@@ -214,84 +299,98 @@ function generateReadmeWithPlatforms(
 
 Generated by Iconym - The last mile for your brand.
 
+## Bundle Structure
+
+This bundle includes **three variants** of your logo:
+
+\`\`\`
+${config.appName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-assets.zip
+├── original/
+│   └── logo.png              # Original logo as uploaded
+│
+├── light-mode/               # For light/white backgrounds
+│   ├── logo-transparent.png  # Transparent logo
+│   ├── ios/                  # iOS app icons
+│   ├── android/              # Android adaptive icons
+│   ├── web/                  # Favicons, PWA icons
+│   └── social/               # OG images, Twitter cards
+│
+├── dark-mode/                # For dark/black backgrounds
+│   ├── logo-transparent.png  # Color-inverted transparent logo
+│   ├── ios/                  # iOS app icons (dark variant)
+│   ├── android/              # Android adaptive icons (dark variant)
+│   ├── web/                  # Favicons, PWA icons (dark variant)
+│   └── social/               # OG images, Twitter cards (dark variant)
+│
+├── code/                     # Framework code snippets
+└── manifest.json             # Bundle metadata
+\`\`\`
+
 ## Asset Summary
 
-| Platform | Assets |
-|----------|--------|
+| Variant | Platform | Assets |
+|---------|----------|--------|
 `;
 
   if (platforms.ios) {
-    readme += `| iOS | ${counts.ios} icons |\n`;
+    readme += `| Light Mode | iOS | ${counts.ios} icons |\n`;
+    readme += `| Dark Mode | iOS | ${counts.ios} icons |\n`;
   }
   if (platforms.android) {
-    readme += `| Android | ${counts.android} icons |\n`;
+    readme += `| Light Mode | Android | ${counts.android} icons |\n`;
+    readme += `| Dark Mode | Android | ${counts.android} icons |\n`;
   }
   if (platforms.web) {
-    readme += `| Web/PWA | ${counts.web} assets |\n`;
+    readme += `| Light Mode | Web/PWA | ${counts.web} assets |\n`;
+    readme += `| Dark Mode | Web/PWA | ${counts.web} assets |\n`;
   }
   if (platforms.social) {
-    readme += `| Social | ${counts.social} images |\n`;
+    readme += `| Light Mode | Social | ${counts.social} images |\n`;
+    readme += `| Dark Mode | Social | ${counts.social} images |\n`;
   }
 
-  readme += `| **Total** | **${counts.total} files** |\n\n`;
+  readme += `| **Total** | | **${counts.total} files** |\n\n`;
 
-  if (platforms.ios) {
-    readme += `## iOS Setup
+  readme += `## When to Use Each Variant
 
-1. Open your Xcode project
-2. Navigate to Assets.xcassets
-3. Delete existing AppIcon.appiconset (if any)
-4. Drag the \`ios/AppIcon.appiconset\` folder into Assets.xcassets
+### Light Mode (\`light-mode/\`)
+Use these assets when your app/website has a **light background** (white, light gray, etc.).
+The logo has its original colors optimized for light backgrounds.
 
-`;
-  }
+### Dark Mode (\`dark-mode/\`)
+Use these assets when your app/website has a **dark background** (black, dark gray, etc.).
+The logo colors are inverted so dark elements become light and remain visible.
 
-  if (platforms.android) {
-    readme += `## Android Setup
+## Quick Start
 
-1. Copy the \`android/mipmap-*\` folders to \`app/src/main/res/\`
-2. Copy \`android/values/colors.xml\` to \`app/src/main/res/values/\`
-3. The adaptive icon XML files go in \`mipmap-anydpi-v26/\`
+### iOS (Both Modes)
+1. For light mode: Copy \`light-mode/ios/AppIcon.appiconset/\` to Assets.xcassets
+2. For dark mode: Copy \`dark-mode/ios/AppIcon.appiconset/\` to a dark mode asset catalog
 
-`;
-  }
+### Android (Both Modes)
+1. For light mode: Copy \`light-mode/android/\` contents to \`app/src/main/res/\`
+2. For dark mode: Use \`dark-mode/android/\` for dark theme resources
 
-  if (platforms.web) {
-    readme += `## Web Setup
-
-Add to your HTML \`<head>\`:
-
+### Web (Automatic Dark Mode)
 \`\`\`html
-<link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="${config.themeColor}">
+<!-- Light mode favicon (default) -->
+<link rel="icon" href="/light-mode/web/favicon.ico">
+
+<!-- Dark mode favicon (for prefers-color-scheme: dark) -->
+<link rel="icon" href="/dark-mode/web/favicon.ico" media="(prefers-color-scheme: dark)">
 \`\`\`
 
-`;
-  }
+### PWA Manifest
+Use \`light-mode/web/manifest.json\` as your base, and consider generating a separate
+dark mode manifest if your PWA supports theme switching.
 
-  if (platforms.social) {
-    readme += `## Social Media
-
-Add to your HTML \`<head>\`:
-
-\`\`\`html
-<meta property="og:image" content="/og-image.png">
-<meta name="twitter:image" content="/twitter-card.png">
-\`\`\`
-
-`;
-  }
-
-  readme += `---
+---
 Generated at ${new Date().toISOString()}
 `;
 
   return readme;
 }
+
 
 /**
  * Get total asset count for selected platforms.
