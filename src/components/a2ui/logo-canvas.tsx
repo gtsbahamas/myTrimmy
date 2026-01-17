@@ -26,9 +26,20 @@ import {
   Redo2,
   Save,
   Trash2,
+  ChevronDown,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useEditSessionOptional } from '@/contexts/edit-session-context';
 
 type ProcessingAction = 'trim' | 'resize' | 'convert' | 'rotate' | 'optimize' | 'bundle' | 'removeBackground' | null;
@@ -379,16 +390,58 @@ export function LogoCanvas({
             />
           )}
 
-          {/* Download button */}
+          {/* Download button with transparent options */}
           <div className="mt-6 flex gap-3">
-            <Button
-              onClick={onDownload}
-              variant={isProcessed ? "default" : "outline"}
-              className="glow-amber"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              {isProcessed ? 'Download Processed' : 'Download Original'}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={isProcessed ? "default" : "outline"}
+                  className="glow-amber"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuItem onClick={onDownload}>
+                  <Download className="h-4 w-4 mr-2" />
+                  {isProcessed ? 'Download Processed' : 'Download Original'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  Transparent Versions
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (!imageId) return;
+                    const a = document.createElement('a');
+                    a.href = `/api/images/${imageId}/transparent?mode=light`;
+                    a.download = `${filename.replace(/\.[^/.]+$/, '')}-transparent-light.png`;
+                    a.click();
+                  }}
+                  disabled={!imageId}
+                >
+                  <Sun className="h-4 w-4 mr-2" />
+                  Light Mode
+                  <span className="ml-auto text-xs text-muted-foreground">for light bg</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (!imageId) return;
+                    const a = document.createElement('a');
+                    a.href = `/api/images/${imageId}/transparent?mode=dark`;
+                    a.download = `${filename.replace(/\.[^/.]+$/, '')}-transparent-dark.png`;
+                    a.click();
+                  }}
+                  disabled={!imageId}
+                >
+                  <Moon className="h-4 w-4 mr-2" />
+                  Dark Mode
+                  <span className="ml-auto text-xs text-muted-foreground">for dark bg</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
