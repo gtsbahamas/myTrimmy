@@ -56,9 +56,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (prompt.length > 1000) {
+    if (prompt.length > 3500) {
       return NextResponse.json(
-        { success: false, error: 'Prompt must be less than 1000 characters', code: 'invalid_request' },
+        { success: false, error: 'Prompt must be less than 3500 characters', code: 'invalid_request' },
         { status: 400 }
       );
     }
