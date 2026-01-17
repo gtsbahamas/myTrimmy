@@ -106,7 +106,7 @@ export const ARTIST_INFLUENCES: Record<ArtistInfluence, ArtistInfluenceMetadata>
     subtitle: 'Clever simplicity',
     description: 'IBM, ABC, NeXT. One witty idea, geometric playfulness.',
     philosophy: 'Reduce to a single clever concept. If you can\'t explain it to a child, simplify more.',
-    promptModifier: 'in the style of Paul Rand: single clever visual concept, witty and playful yet sophisticated, bold geometric simplicity, one memorable idea not many ideas, could be sketched in 5 seconds, timeless not trendy, confidence through restraint',
+    promptModifier: 'Paul Rand style. ONE clever visual concept only. Bold geometric shapes. Must be drawable in 5 seconds. Nothing decorative. Nothing trendy. Maximum restraint. If in doubt remove it',
     examples: ['IBM', 'ABC', 'UPS', 'NeXT'],
   },
   saul_bass: {
@@ -114,7 +114,7 @@ export const ARTIST_INFLUENCES: Record<ArtistInfluence, ArtistInfluenceMetadata>
     subtitle: 'Bold symbolism',
     description: 'AT&T, United Airlines. Dramatic negative space, essential gesture.',
     philosophy: 'Find the one symbolic gesture that tells the whole story. Silence is powerful.',
-    promptModifier: 'in the style of Saul Bass: bold symbolic minimalism, dramatic use of negative space, reduced to essential gesture, strong silhouette that works at any size, cinematic impact, striking simplicity, black and white thinking with strategic color',
+    promptModifier: 'Saul Bass style. ONE symbolic gesture only. Extreme negative space. Must work as pure silhouette. Black and white thinking. Cinematic boldness. Nothing extra. Strip to essence',
     examples: ['AT&T', 'United Airlines', 'Minolta'],
   },
   massimo_vignelli: {
@@ -122,7 +122,7 @@ export const ARTIST_INFLUENCES: Record<ArtistInfluence, ArtistInfluenceMetadata>
     subtitle: 'Timeless structure',
     description: 'NYC Subway, American Airlines. Grid precision, architectural elegance.',
     philosophy: 'Design is not style. It is structure. Remove until only the essential remains.',
-    promptModifier: 'in the style of Massimo Vignelli: rigorous grid-based structure, architectural precision, limited to essential elements only, Helvetica-like clarity, timeless over fashionable, elegant restraint, mathematical harmony, no decoration only structure',
+    promptModifier: 'Massimo Vignelli style. Grid-based structure only. Mathematical precision. Helvetica clarity. Zero decoration. Zero ornamentation. Timeless not fashionable. Structure is the design',
     examples: ['NYC Subway', 'American Airlines', 'Knoll'],
   },
   japanese_minimal: {
@@ -130,7 +130,7 @@ export const ARTIST_INFLUENCES: Record<ArtistInfluence, ArtistInfluenceMetadata>
     subtitle: 'Ma (negative space)',
     description: 'Muji, Kenya Hara. Emptiness as meaning, quiet confidence.',
     philosophy: 'What you remove is more important than what you add. Emptiness creates meaning.',
-    promptModifier: 'Japanese minimalist aesthetic inspired by Kenya Hara and Muji: extreme restraint, emptiness and whitespace as primary design elements, subtle and quiet, essence not decoration, meditative simplicity, confident understatement, breathing room, less than you think you need',
+    promptModifier: 'Kenya Hara and Muji aesthetic. Extreme emptiness. Whitespace is the design. Less than minimum. Quiet. Subtle. Nothing that demands attention. Meditative restraint. Remove more',
     examples: ['Muji', 'Uniqlo'],
   },
   swiss_modernist: {
@@ -138,7 +138,7 @@ export const ARTIST_INFLUENCES: Record<ArtistInfluence, ArtistInfluenceMetadata>
     subtitle: 'Rational clarity',
     description: 'International Style. Mathematical grids, objective design.',
     philosophy: 'Design should be universal, clear, and objective. The grid is truth.',
-    promptModifier: 'Swiss International Style: mathematical grid precision, objective and universal, clean sans-serif typography, rational not emotional, high contrast, asymmetric balance, functional clarity, systematic approach, no ornamentation',
+    promptModifier: 'Swiss International Style. Mathematical grid. Objective not expressive. Clean sans-serif only. High contrast. Zero ornamentation. Systematic. Rational. Universal',
     examples: ['Swiss Railways', 'Lufthansa'],
   },
   contemporary_tech: {
@@ -146,7 +146,7 @@ export const ARTIST_INFLUENCES: Record<ArtistInfluence, ArtistInfluenceMetadata>
     subtitle: 'Premium minimal',
     description: 'Stripe, Linear, Vercel. Refined geometry, sophisticated restraint.',
     philosophy: 'Modern premium aesthetics. Subtle, refined, quietly confident.',
-    promptModifier: 'contemporary tech startup aesthetic like Stripe Linear or Vercel: refined geometric simplicity, premium minimalism, subtle sophistication, modern but not flashy, quietly confident, clean lines, purposeful negative space, works beautifully in dark mode',
+    promptModifier: 'Stripe Linear Vercel aesthetic. Refined geometry. Premium restraint. Not flashy. Quietly confident. Clean lines. Purposeful negative space. Modern professional. Dark mode compatible',
     examples: ['Stripe', 'Linear', 'Vercel', 'Notion'],
   },
   paula_scher: {
@@ -154,7 +154,7 @@ export const ARTIST_INFLUENCES: Record<ArtistInfluence, ArtistInfluenceMetadata>
     subtitle: 'Expressive typography',
     description: 'Citibank, Public Theater. Bold type as art, controlled energy.',
     philosophy: 'Type can be expressive and architectural. Break rules purposefully.',
-    promptModifier: 'in the style of Paula Scher: expressive bold typography, letterforms as architecture, energetic yet controlled, confident use of scale, type as primary visual element, dynamic composition, purposeful rule-breaking, cultural sophistication',
+    promptModifier: 'Paula Scher style. Typography as architecture. Bold letterforms. Confident scale. Type is the entire design. Controlled energy. One typeface maximum. No illustration needed',
     examples: ['Citibank', 'Public Theater', 'Microsoft Windows 8'],
   },
   milton_glaser: {
@@ -162,7 +162,7 @@ export const ARTIST_INFLUENCES: Record<ArtistInfluence, ArtistInfluenceMetadata>
     subtitle: 'Iconic concepts',
     description: 'I ❤ NY. Unexpected simplicity, warmth and humanity.',
     philosophy: 'Find the unexpected combination that becomes instantly iconic.',
-    promptModifier: 'in the style of Milton Glaser: conceptual simplicity that surprises, unexpected visual combinations, warmth and humanity, instantly memorable, could become cultural icon, clever but not cold, accessible sophistication',
+    promptModifier: 'Milton Glaser style. ONE unexpected visual combination. Instant recognition. Warmth not coldness. Could become cultural icon. Simple enough for a t-shirt. Memorable in one glance',
     examples: ['I ❤ NY', 'Brooklyn Brewery'],
   },
   none: {
@@ -492,8 +492,37 @@ export interface LogoGenerationState {
 }
 
 // ============================================================
-// PROMPT ENHANCEMENT
+// PROMPT ENGINEERING - Constraints-First Approach
 // ============================================================
+
+/**
+ * NEGATIVE CONSTRAINTS - What DALL-E must NOT include.
+ * These are critical for restraint and professional output.
+ */
+const NEGATIVE_CONSTRAINTS = [
+  'absolutely no gradients',
+  'no 3D effects',
+  'no shadows or drop shadows',
+  'no bevels or embossing',
+  'no photorealistic elements',
+  'no busy backgrounds',
+  'no multiple concepts competing',
+  'no decorative flourishes',
+  'no unnecessary details',
+  'no clipart aesthetic',
+  'nothing that cannot be drawn in 10 seconds',
+] as const;
+
+/**
+ * STRUCTURE CONSTRAINTS - Layout and composition rules.
+ */
+const STRUCTURE_CONSTRAINTS = [
+  'single focal point only',
+  'mathematically centered',
+  'works at 16x16 pixels',
+  'works in pure black on white',
+  'scalable to any size',
+] as const;
 
 /**
  * Enhances a user's prompt with logo-specific context for better DALL-E results
@@ -509,13 +538,16 @@ export function enhancePrompt(
     return buildAdvancedPrompt(userPrompt, advancedSettings);
   }
 
-  // Basic mode: use simple style-based enhancement
-  const basePrefix = 'Professional logo design on a pure white background, single icon or wordmark,';
-  const baseSuffix = 'vector-style, high contrast, no text unless specified, centered composition, suitable for app icon';
+  // Basic mode: use constraints-first approach
+  const constraints = [
+    'CONSTRAINTS:',
+    ...NEGATIVE_CONSTRAINTS.slice(0, 5),
+    ...STRUCTURE_CONSTRAINTS.slice(0, 3),
+  ].join(' ');
 
   const styleModifier = style ? LOGO_STYLES[style].promptModifier : 'clean and professional';
 
-  return `${basePrefix} ${styleModifier}: ${userPrompt}. ${baseSuffix}`;
+  return `${constraints}. Professional logo, ${styleModifier}, pure white background, flat vector style: ${userPrompt}. Single mark, centered.`;
 }
 
 /**
@@ -537,92 +569,125 @@ function buildAdvancedPrompt(userPrompt: string, settings: AdvancedLogoSettings)
 
 /**
  * Builds a prompt driven by artist influence.
- * The artist's philosophy is primary; other settings are minimal modifiers.
+ *
+ * PROMPT STRUCTURE (order matters):
+ * 1. Hard constraints (what NOT to do) - FIRST
+ * 2. Structure requirements (composition rules)
+ * 3. Artist philosophy (creative direction)
+ * 4. User's concept
+ * 5. Technical specs
  */
 function buildArtistDrivenPrompt(
   userPrompt: string,
   settings: AdvancedLogoSettings,
   artistInfluence: ArtistInfluenceMetadata
 ): string {
-  const parts: string[] = [];
+  const promptParts: string[] = [];
 
-  // IMPORTANT: Artist influence is the PRIMARY driver
-  // Don't dilute it with too many other modifiers
+  // 1. HARD CONSTRAINTS - What must NOT be included (FIRST)
+  promptParts.push('STRICT REQUIREMENTS:');
+  promptParts.push(NEGATIVE_CONSTRAINTS.join(', '));
 
-  // Only add composition if it's not icon_only (the default)
+  // 2. STRUCTURE CONSTRAINTS - Composition rules
+  promptParts.push('STRUCTURE:');
+  promptParts.push(STRUCTURE_CONSTRAINTS.join(', '));
+
+  // 3. ARTIST PHILOSOPHY - Creative direction (primary driver)
+  promptParts.push('STYLE DIRECTION:');
+  promptParts.push(artistInfluence.promptModifier);
+
+  // 4. USER CONCEPT - What they actually want
+  promptParts.push('CONCEPT:');
+  promptParts.push(userPrompt);
+
+  // 5. COMPOSITION TYPE - Only if not default icon_only
   if (settings.composition !== 'icon_only') {
     const compMod = COMPOSITION_TYPES[settings.composition].promptModifier;
     if (compMod) {
-      parts.push(compMod);
+      promptParts.push(`LAYOUT: ${compMod}`);
     }
   }
 
-  // Only add custom colors if specified
+  // 6. COLOR ENFORCEMENT - Only for custom colors with hex codes
   if (settings.colors.paletteType === 'custom') {
     const colorMod = buildColorModifier(settings.colors);
     if (colorMod) {
-      parts.push(colorMod);
+      promptParts.push(`COLORS: ${colorMod}, no other colors allowed`);
     }
   }
 
-  // Build the final prompt with artist influence as the core
-  const secondaryMods = parts.length > 0 ? `, ${parts.join(', ')}` : '';
+  // 7. TECHNICAL SPECS - Final requirements
+  promptParts.push('OUTPUT: flat vector logo, pure white background, single centered mark, no texture, no noise');
 
-  // Structure: Artist philosophy + user concept + minimal additions
-  return `Logo design ${artistInfluence.promptModifier}${secondaryMods}: ${userPrompt}. Pure white background, vector-style, centered.`;
+  return promptParts.join('. ');
 }
 
 /**
  * Builds a prompt from granular controls (when no artist is selected).
+ * Uses same constraints-first structure for consistency.
  */
 function buildGranularPrompt(userPrompt: string, settings: AdvancedLogoSettings): string {
-  const parts: string[] = [];
+  const promptParts: string[] = [];
 
-  // Start with composition type
-  parts.push(COMPOSITION_TYPES[settings.composition].promptModifier);
+  // 1. HARD CONSTRAINTS - What must NOT be included (FIRST)
+  promptParts.push('STRICT REQUIREMENTS:');
+  promptParts.push(NEGATIVE_CONSTRAINTS.join(', '));
 
-  // Add background context
-  const backgroundMod = BACKGROUND_TYPES[settings.background].promptModifier;
-  if (backgroundMod) {
-    parts.push(backgroundMod);
-  }
+  // 2. STRUCTURE CONSTRAINTS
+  promptParts.push('STRUCTURE:');
+  promptParts.push(STRUCTURE_CONSTRAINTS.join(', '));
 
-  // Add mood/style
-  parts.push(LOGO_STYLES[settings.mood].promptModifier);
+  // 3. STYLE ATTRIBUTES - Granular controls
+  const styleAttrs: string[] = [];
 
-  // Add shape if not freeform
+  // Composition
+  styleAttrs.push(COMPOSITION_TYPES[settings.composition].promptModifier);
+
+  // Mood/style
+  styleAttrs.push(LOGO_STYLES[settings.mood].promptModifier);
+
+  // Shape if not freeform
   const shapeMod = SHAPE_TYPES[settings.shape].promptModifier;
   if (shapeMod) {
-    parts.push(shapeMod);
+    styleAttrs.push(shapeMod);
   }
 
-  // Add icon style (only if composition includes an icon)
+  // Icon style (only if composition includes an icon)
   if (settings.composition !== 'wordmark_only') {
-    parts.push(ICON_STYLES[settings.iconStyle].promptModifier);
+    styleAttrs.push(ICON_STYLES[settings.iconStyle].promptModifier);
   }
 
-  // Add typography (only if composition includes text)
+  // Typography (only if composition includes text)
   if (settings.composition !== 'icon_only') {
-    parts.push(TYPOGRAPHY_STYLES[settings.typography].promptModifier);
+    styleAttrs.push(TYPOGRAPHY_STYLES[settings.typography].promptModifier);
   }
 
-  // Add detail level
-  parts.push(DETAIL_LEVELS[settings.detailLevel].promptModifier);
+  // Detail level
+  styleAttrs.push(DETAIL_LEVELS[settings.detailLevel].promptModifier);
 
-  // Add color settings
+  promptParts.push('STYLE: ' + styleAttrs.filter(Boolean).join(', '));
+
+  // 4. USER CONCEPT
+  promptParts.push('CONCEPT: ' + userPrompt);
+
+  // 5. COLOR ENFORCEMENT
   const colorModifier = buildColorModifier(settings.colors);
   if (colorModifier) {
-    parts.push(colorModifier);
+    promptParts.push(`COLORS: ${colorModifier}`);
   }
 
-  // Combine all modifiers
-  const modifiers = parts.filter(Boolean).join(', ');
+  // 6. BACKGROUND
+  const backgroundMod = BACKGROUND_TYPES[settings.background].promptModifier;
+  if (backgroundMod) {
+    promptParts.push('BACKGROUND: ' + backgroundMod);
+  } else {
+    promptParts.push('BACKGROUND: pure white');
+  }
 
-  // Build final prompt
-  const prefix = 'Professional logo design,';
-  const suffix = 'vector-style, high contrast, centered composition, suitable for app icon';
+  // 7. TECHNICAL SPECS
+  promptParts.push('OUTPUT: flat vector logo, single centered mark, no texture');
 
-  return `${prefix} ${modifiers}: ${userPrompt}. ${suffix}`;
+  return promptParts.join('. ');
 }
 
 /**
