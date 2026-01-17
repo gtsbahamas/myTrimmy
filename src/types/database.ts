@@ -280,6 +280,7 @@ export type Database = {
           display_name: string | null
           id: string
           is_pro: boolean | null
+          openai_api_key: string | null
           pro_purchased_at: string | null
           replicate_api_key: string | null
           stripe_customer_id: string | null
@@ -291,6 +292,7 @@ export type Database = {
           display_name?: string | null
           id: string
           is_pro?: boolean | null
+          openai_api_key?: string | null
           pro_purchased_at?: string | null
           replicate_api_key?: string | null
           stripe_customer_id?: string | null
@@ -302,6 +304,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           is_pro?: boolean | null
+          openai_api_key?: string | null
           pro_purchased_at?: string | null
           replicate_api_key?: string | null
           stripe_customer_id?: string | null
@@ -456,6 +459,7 @@ export type Database = {
           display_name: string | null
           id: string
           is_pro: boolean | null
+          openai_api_key: string | null
           pro_purchased_at: string | null
           replicate_api_key: string | null
           stripe_customer_id: string | null

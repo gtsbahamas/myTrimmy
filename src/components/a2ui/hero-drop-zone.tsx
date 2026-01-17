@@ -8,11 +8,12 @@
 'use client';
 
 import * as React from 'react';
-import { Upload, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Upload, Image as ImageIcon, Sparkles, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface HeroDropZoneProps {
   onFilesSelected: (files: File[]) => void;
+  onGenerateAI?: () => void;
   isUploading?: boolean;
   hasImage?: boolean;
   className?: string;
@@ -20,6 +21,7 @@ interface HeroDropZoneProps {
 
 export function HeroDropZone({
   onFilesSelected,
+  onGenerateAI,
   isUploading = false,
   hasImage = false,
   className,
@@ -68,32 +70,52 @@ export function HeroDropZone({
   // Collapsed state when image is present
   if (hasImage) {
     return (
-      <button
-        type="button"
-        onClick={handleClick}
-        className={cn(
-          "group relative flex items-center gap-3 px-5 py-3",
-          "rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm",
-          "hover:border-primary/50 hover:bg-primary/5",
-          "transition-all duration-300",
-          className
+      <div className={cn("flex items-center gap-2", className)}>
+        <button
+          type="button"
+          onClick={handleClick}
+          className={cn(
+            "group relative flex items-center gap-3 px-5 py-3",
+            "rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm",
+            "hover:border-primary/50 hover:bg-primary/5",
+            "transition-all duration-300"
+          )}
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
+            <Upload className="h-5 w-5" />
+          </div>
+          <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+            Upload new logo
+          </span>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFileChange}
+            className="sr-only"
+          />
+        </button>
+        {onGenerateAI && (
+          <button
+            type="button"
+            onClick={onGenerateAI}
+            className={cn(
+              "group relative flex items-center gap-3 px-5 py-3",
+              "rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm",
+              "hover:border-primary/50 hover:bg-primary/5",
+              "transition-all duration-300"
+            )}
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
+              <Wand2 className="h-5 w-5" />
+            </div>
+            <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+              Generate with AI
+            </span>
+          </button>
         )}
-      >
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
-          <Upload className="h-5 w-5" />
-        </div>
-        <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-          Upload new logo
-        </span>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handleFileChange}
-          className="sr-only"
-        />
-      </button>
+      </div>
     );
   }
 
@@ -153,11 +175,29 @@ export function HeroDropZone({
             : 'Drag and drop your logo, or click to browse. PNG, JPG, WebP up to 10MB.'}
         </p>
 
-        {/* Upload button hint */}
+        {/* Action buttons */}
         {!isDragging && !isUploading && (
-          <div className="mt-6 flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
-            <Upload className="h-4 w-4" />
-            Click to upload
+          <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
+              <Upload className="h-4 w-4" />
+              Click to upload
+            </div>
+            {onGenerateAI && (
+              <>
+                <span className="text-muted-foreground text-sm">or</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onGenerateAI();
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-600 dark:text-purple-400 text-sm font-medium hover:from-purple-500/30 hover:to-pink-500/30 transition-all"
+                >
+                  <Wand2 className="h-4 w-4" />
+                  Generate with AI
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

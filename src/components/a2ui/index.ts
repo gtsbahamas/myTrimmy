@@ -8,3 +8,4 @@ export { HeroDropZone } from './hero-drop-zone';
 export { LogoCanvas } from './logo-canvas';
 export { ActivityStream, useActivityStream, type Activity } from './activity-stream';
 export { GalleryRail } from './gallery-rail';
+export { LogoGeneratorModal } from './logo-generator-modal';

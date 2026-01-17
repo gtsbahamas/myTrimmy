@@ -15,6 +15,7 @@ import {
   ActivityStream,
   GalleryRail,
   useActivityStream,
+  LogoGeneratorModal,
 } from '@/components/a2ui';
 import { EditSessionProvider, useEditSession } from '@/contexts/edit-session-context';
 import type { Tables } from '@/types/database';
@@ -28,6 +29,7 @@ export default function DashboardPage() {
   const [selectedImage, setSelectedImage] = React.useState<ImageRecord | null>(null);
   const [isUploading, setIsUploading] = React.useState(false);
   const [isProcessing, setIsProcessing] = React.useState(false);
+  const [showGeneratorModal, setShowGeneratorModal] = React.useState(false);
 
   const { activities, addActivity, updateActivity } = useActivityStream();
   const supabase = createClient();
@@ -379,6 +381,26 @@ export default function DashboardPage() {
     setSelectedImage(image);
   }, []);
 
+  // Handle AI logo generated
+  const handleLogoGenerated = React.useCallback(async (imageId: string) => {
+    addActivity('process', 'AI logo generated', {
+      status: 'completed',
+      action: 'bundle' as const,
+    });
+
+    // Fetch the newly created image
+    const { data: newImage } = await supabase
+      .from('images')
+      .select('*')
+      .eq('id', imageId)
+      .single();
+
+    if (newImage) {
+      setImages(prev => [newImage, ...prev]);
+      setSelectedImage(newImage);
+    }
+  }, [supabase, addActivity]);
+
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col">
       {/* Main content area */}
@@ -414,6 +436,7 @@ export default function DashboardPage() {
           /* Hero Drop Zone - when no image selected */
           <HeroDropZone
             onFilesSelected={handleFilesSelected}
+            onGenerateAI={() => setShowGeneratorModal(true)}
             isUploading={isUploading}
             hasImage={false}
           />
@@ -424,11 +447,19 @@ export default function DashboardPage() {
           <div className="mt-8">
             <HeroDropZone
               onFilesSelected={handleFilesSelected}
+              onGenerateAI={() => setShowGeneratorModal(true)}
               isUploading={isUploading}
               hasImage={true}
             />
           </div>
         )}
+
+        {/* AI Logo Generator Modal */}
+        <LogoGeneratorModal
+          open={showGeneratorModal}
+          onOpenChange={setShowGeneratorModal}
+          onLogoGenerated={handleLogoGenerated}
+        />
       </div>
 
       {/* Activity Stream */}

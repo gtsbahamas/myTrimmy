@@ -474,11 +474,12 @@ interface MyTrimmyApiKey {
   last_used_at: string | null;
 }
 
-const ReplicateKeySchema = z.object({
+const ThirdPartyKeysSchema = z.object({
   replicateApiKey: z.string().optional(),
+  openaiApiKey: z.string().optional(),
 });
 
-type ReplicateKeyFormData = z.infer<typeof ReplicateKeySchema>;
+type ThirdPartyKeysFormData = z.infer<typeof ThirdPartyKeysSchema>;
 
 function APIKeysSettings() {
   const { user } = useAuth();
@@ -494,14 +495,17 @@ function APIKeysSettings() {
   const [copied, setCopied] = React.useState(false);
   const [revokingId, setRevokingId] = React.useState<string | null>(null);
 
-  // Replicate (3rd party) key state
+  // Third party keys state
   const [hasReplicateKey, setHasReplicateKey] = React.useState(false);
   const [showReplicateKey, setShowReplicateKey] = React.useState(false);
+  const [hasOpenaiKey, setHasOpenaiKey] = React.useState(false);
+  const [showOpenaiKey, setShowOpenaiKey] = React.useState(false);
 
-  const replicateForm = useForm<ReplicateKeyFormData>({
-    resolver: zodResolver(ReplicateKeySchema),
+  const thirdPartyForm = useForm<ThirdPartyKeysFormData>({
+    resolver: zodResolver(ThirdPartyKeysSchema),
     defaultValues: {
       replicateApiKey: '',
+      openaiApiKey: '',
     },
   });
 
@@ -526,24 +530,28 @@ function APIKeysSettings() {
     }
   }, [user?.id]);
 
-  // Load Replicate API key status
+  // Load third-party API keys status
   React.useEffect(() => {
-    async function loadReplicateKey() {
+    async function loadThirdPartyKeys() {
       if (!user?.id) return;
       const supabase = createClient();
       const { data } = await supabase
         .from('profiles')
-        .select('replicate_api_key')
+        .select('replicate_api_key, openai_api_key')
         .eq('id', user.id)
         .single();
 
       if (data?.replicate_api_key) {
         setHasReplicateKey(true);
-        replicateForm.setValue('replicateApiKey', '••••••••••••••••');
+        thirdPartyForm.setValue('replicateApiKey', '••••••••••••••••');
+      }
+      if (data?.openai_api_key) {
+        setHasOpenaiKey(true);
+        thirdPartyForm.setValue('openaiApiKey', '••••••••••••••••');
       }
     }
-    loadReplicateKey();
-  }, [user?.id, replicateForm]);
+    loadThirdPartyKeys();
+  }, [user?.id, thirdPartyForm]);
 
   // Create new myTrimmy API key
   async function handleCreateKey() {
@@ -624,8 +632,8 @@ function APIKeysSettings() {
     }
   }
 
-  // Replicate key handlers
-  async function handleReplicateSubmit(data: ReplicateKeyFormData) {
+  // Third party keys submit handler
+  async function handleThirdPartySubmit(data: ThirdPartyKeysFormData) {
     if (!user?.id) return;
 
     setError(null);
@@ -634,34 +642,49 @@ function APIKeysSettings() {
     try {
       const supabase = createClient();
 
-      const keyToSave = data.replicateApiKey === '••••••••••••••••'
-        ? undefined
-        : data.replicateApiKey || null;
+      const updates: Record<string, string | null | undefined> = {
+        updated_at: new Date().toISOString(),
+      };
 
-      if (keyToSave !== undefined) {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            replicate_api_key: keyToSave,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', user.id);
+      // Handle Replicate key
+      if (data.replicateApiKey !== '••••••••••••••••') {
+        updates.replicate_api_key = data.replicateApiKey || null;
+      }
 
-        if (updateError) {
-          setError(updateError.message);
-          return;
+      // Handle OpenAI key
+      if (data.openaiApiKey !== '••••••••••••••••') {
+        updates.openai_api_key = data.openaiApiKey || null;
+      }
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id);
+
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+
+      // Update state for each key
+      if (updates.replicate_api_key !== undefined) {
+        setHasReplicateKey(!!updates.replicate_api_key);
+        if (updates.replicate_api_key) {
+          thirdPartyForm.setValue('replicateApiKey', '••••••••••••••••');
         }
-
-        setHasReplicateKey(!!keyToSave);
-        if (keyToSave) {
-          replicateForm.setValue('replicateApiKey', '••••••••••••••••');
+      }
+      if (updates.openai_api_key !== undefined) {
+        setHasOpenaiKey(!!updates.openai_api_key);
+        if (updates.openai_api_key) {
+          thirdPartyForm.setValue('openaiApiKey', '••••••••••••••••');
         }
       }
 
-      setSuccess('Replicate API key updated successfully.');
+      setSuccess('API keys updated successfully.');
       setShowReplicateKey(false);
+      setShowOpenaiKey(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update API key');
+      setError(err instanceof Error ? err.message : 'Failed to update API keys');
     }
   }
 
@@ -687,8 +710,37 @@ function APIKeysSettings() {
       }
 
       setHasReplicateKey(false);
-      replicateForm.setValue('replicateApiKey', '');
+      thirdPartyForm.setValue('replicateApiKey', '');
       setSuccess('Replicate API key removed.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove API key');
+    }
+  }
+
+  async function handleRemoveOpenaiKey() {
+    if (!user?.id) return;
+
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const supabase = createClient();
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          openai_api_key: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+
+      setHasOpenaiKey(false);
+      thirdPartyForm.setValue('openaiApiKey', '');
+      setSuccess('OpenAI API key removed.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove API key');
     }
@@ -874,8 +926,71 @@ function APIKeysSettings() {
             Your keys are encrypted at rest and never shared.
           </CardDescription>
         </CardHeader>
-        <form onSubmit={replicateForm.handleSubmit(handleReplicateSubmit)}>
+        <form onSubmit={thirdPartyForm.handleSubmit(handleThirdPartySubmit)}>
           <CardContent className="space-y-6">
+            {/* OpenAI API Key */}
+            <div className="space-y-4 rounded-lg border border-border/50 p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="font-medium">OpenAI API Key</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Used for AI logo generation with DALL-E 3. Get your key at{' '}
+                    <a
+                      href="https://platform.openai.com/api-keys"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      platform.openai.com
+                    </a>
+                  </p>
+                </div>
+                {hasOpenaiKey && (
+                  <span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-500">
+                    Configured
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="openaiApiKey">API Key</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="openaiApiKey"
+                    type={showOpenaiKey ? 'text' : 'password'}
+                    placeholder="sk-xxxxxxxxxxxx"
+                    {...thirdPartyForm.register('openaiApiKey')}
+                    disabled={thirdPartyForm.formState.isSubmitting}
+                    className="font-mono"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowOpenaiKey(!showOpenaiKey)}
+                  >
+                    {showOpenaiKey ? 'Hide' : 'Show'}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Without your own key, you&apos;ll use the shared pool (limited usage).
+                  With your own key, usage is unlimited and billed directly to your OpenAI account.
+                </p>
+              </div>
+
+              {hasOpenaiKey && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRemoveOpenaiKey}
+                  className="text-destructive hover:text-destructive"
+                >
+                  Remove Key
+                </Button>
+              )}
+            </div>
+
             {/* Replicate API Key */}
             <div className="space-y-4 rounded-lg border border-border/50 p-4">
               <div className="flex items-start justify-between">
@@ -907,8 +1022,8 @@ function APIKeysSettings() {
                     id="replicateApiKey"
                     type={showReplicateKey ? 'text' : 'password'}
                     placeholder="r8_xxxxxxxxxxxx"
-                    {...replicateForm.register('replicateApiKey')}
-                    disabled={replicateForm.formState.isSubmitting}
+                    {...thirdPartyForm.register('replicateApiKey')}
+                    disabled={thirdPartyForm.formState.isSubmitting}
                     className="font-mono"
                   />
                   <Button
@@ -940,8 +1055,8 @@ function APIKeysSettings() {
             </div>
           </CardContent>
           <CardFooter>
-            <SubmitButton isSubmitting={replicateForm.formState.isSubmitting}>
-              Save Replicate Key
+            <SubmitButton isSubmitting={thirdPartyForm.formState.isSubmitting}>
+              Save API Keys
             </SubmitButton>
           </CardFooter>
         </form>
