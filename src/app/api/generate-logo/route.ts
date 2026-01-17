@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceRoleClient, getAuthFromRequest } from '@/lib/supabase/server';
-import { enhancePrompt, type GenerateLogoRequest, type LogoVariation, type LogoStyle } from '@/types/logo-generation';
+import { enhancePrompt, type GenerateLogoRequest, type LogoVariation, type LogoStyle, type AdvancedLogoSettings } from '@/types/logo-generation';
 
 interface OpenAIImageResponse {
   created: number;
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json() as GenerateLogoRequest;
-    const { prompt, style } = body;
+    const { prompt, style, mode, advancedSettings } = body;
 
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
       return NextResponse.json(
@@ -62,6 +62,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Determine if using advanced mode
+    const isAdvancedMode = mode === 'advanced' && advancedSettings;
 
     // Get user's profile to check for their own API key
     const { data: profile } = await supabase
@@ -86,8 +89,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Enhance the prompt with logo-specific context
-    const enhancedPrompt = enhancePrompt(prompt, style as LogoStyle);
+    const enhancedPrompt = isAdvancedMode
+      ? enhancePrompt(prompt, undefined, advancedSettings as AdvancedLogoSettings)
+      : enhancePrompt(prompt, style as LogoStyle);
+
     console.log(`Generating logo for user ${userId}`);
+    console.log(`Mode: ${mode || 'basic'}`);
     console.log(`Original prompt: ${prompt}`);
     console.log(`Enhanced prompt: ${enhancedPrompt}`);
     console.log(`Using ${userApiKey ? "user's API key" : "app API key"}`);

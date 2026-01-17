@@ -7,7 +7,7 @@
 'use client';
 
 import * as React from 'react';
-import { Sparkles, Wand2, X, AlertCircle, Loader2 } from 'lucide-react';
+import { Sparkles, Wand2, X, AlertCircle, Loader2, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,16 +21,69 @@ import {
 } from '@/components/ui/dialog';
 import {
   LOGO_STYLES,
+  PALETTE_TYPES,
+  COMPOSITION_TYPES,
+  SHAPE_TYPES,
+  BACKGROUND_TYPES,
+  ICON_STYLES,
+  TYPOGRAPHY_STYLES,
+  DETAIL_LEVELS,
+  DEFAULT_ADVANCED_SETTINGS,
+  previewEnhancedPrompt,
   type LogoStyle,
   type LogoVariation,
   type GenerateLogoResponse,
   type GenerateLogoErrorResponse,
+  type GeneratorMode,
+  type AdvancedLogoSettings,
+  type PaletteType,
+  type CompositionType,
+  type ShapeType,
+  type BackgroundType,
+  type IconStyle,
+  type TypographyStyle,
+  type DetailLevel,
 } from '@/types/logo-generation';
 
 interface LogoGeneratorModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onLogoGenerated: (imageId: string) => void;
+}
+
+// Collapsible section component for advanced controls
+function CollapsibleSection({
+  title,
+  expanded,
+  onToggle,
+  children,
+}: {
+  title: string;
+  expanded: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between px-3 py-2.5 hover:bg-muted/50 transition-colors"
+      >
+        <span className="text-sm font-medium">{title}</span>
+        {expanded ? (
+          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        )}
+      </button>
+      {expanded && (
+        <div className="px-3 pb-3 pt-1">
+          {children}
+        </div>
+      )}
+    </div>
+  );
 }
 
 type GenerationState = 'idle' | 'generating' | 'selecting' | 'saving';
@@ -42,6 +95,10 @@ export function LogoGeneratorModal({
 }: LogoGeneratorModalProps) {
   const [prompt, setPrompt] = React.useState('');
   const [style, setStyle] = React.useState<LogoStyle>('minimalist');
+  const [mode, setMode] = React.useState<GeneratorMode>('basic');
+  const [advancedSettings, setAdvancedSettings] = React.useState<AdvancedLogoSettings>(DEFAULT_ADVANCED_SETTINGS);
+  const [expandedSections, setExpandedSections] = React.useState<Set<string>>(new Set(['composition']));
+  const [showPromptPreview, setShowPromptPreview] = React.useState(false);
   const [state, setState] = React.useState<GenerationState>('idle');
   const [variations, setVariations] = React.useState<LogoVariation[]>([]);
   const [selectedVariation, setSelectedVariation] = React.useState<LogoVariation | null>(null);
@@ -52,12 +109,65 @@ export function LogoGeneratorModal({
     if (!open) {
       setPrompt('');
       setStyle('minimalist');
+      setMode('basic');
+      setAdvancedSettings(DEFAULT_ADVANCED_SETTINGS);
+      setExpandedSections(new Set(['composition']));
+      setShowPromptPreview(false);
       setState('idle');
       setVariations([]);
       setSelectedVariation(null);
       setError(null);
     }
   }, [open]);
+
+  // Toggle section expansion
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(section)) {
+        next.delete(section);
+      } else {
+        next.add(section);
+      }
+      return next;
+    });
+  };
+
+  // Update advanced settings helper
+  const updateAdvancedSetting = <K extends keyof AdvancedLogoSettings>(
+    key: K,
+    value: AdvancedLogoSettings[K]
+  ) => {
+    setAdvancedSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Update color settings helper
+  const updateColorSetting = <K extends keyof AdvancedLogoSettings['colors']>(
+    key: K,
+    value: AdvancedLogoSettings['colors'][K]
+  ) => {
+    setAdvancedSettings(prev => ({
+      ...prev,
+      colors: { ...prev.colors, [key]: value },
+    }));
+  };
+
+  // Sync mood when switching from basic to advanced
+  const handleModeChange = (newMode: GeneratorMode) => {
+    if (newMode === 'advanced' && mode === 'basic') {
+      // Sync the basic style to advanced mood
+      setAdvancedSettings(prev => ({ ...prev, mood: style }));
+    } else if (newMode === 'basic' && mode === 'advanced') {
+      // Sync the advanced mood to basic style
+      setStyle(advancedSettings.mood);
+    }
+    setMode(newMode);
+  };
+
+  // Check if typography controls should be enabled
+  const isTypographyEnabled = advancedSettings.composition !== 'icon_only';
+  // Check if icon style controls should be enabled
+  const isIconStyleEnabled = advancedSettings.composition !== 'wordmark_only';
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -69,10 +179,14 @@ export function LogoGeneratorModal({
     setState('generating');
 
     try {
+      const requestBody = mode === 'advanced'
+        ? { prompt: prompt.trim(), mode, advancedSettings }
+        : { prompt: prompt.trim(), style, mode };
+
       const response = await fetch('/api/generate-logo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim(), style }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json() as GenerateLogoResponse | GenerateLogoErrorResponse;
@@ -166,6 +280,35 @@ export function LogoGeneratorModal({
         {/* Prompt Input (idle state) */}
         {state === 'idle' && (
           <div className="space-y-6">
+            {/* Mode Toggle */}
+            <div className="flex items-center justify-between rounded-lg border p-1 bg-muted/30">
+              <button
+                type="button"
+                onClick={() => handleModeChange('basic')}
+                className={cn(
+                  'flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors',
+                  mode === 'basic'
+                    ? 'bg-background shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                Basic
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModeChange('advanced')}
+                className={cn(
+                  'flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors',
+                  mode === 'advanced'
+                    ? 'bg-background shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                Advanced
+              </button>
+            </div>
+
+            {/* Prompt Input */}
             <div className="space-y-2">
               <Label htmlFor="logo-prompt">Describe your logo</Label>
               <Input
@@ -177,36 +320,346 @@ export function LogoGeneratorModal({
                 className="text-base"
               />
               <p className="text-xs text-muted-foreground">
-                Be specific about colors, shapes, and style you want
+                {mode === 'basic'
+                  ? 'Be specific about colors, shapes, and style you want'
+                  : 'Describe the concept - use controls below for style details'}
               </p>
             </div>
 
-            {/* Style Selection */}
-            <div className="space-y-2">
-              <Label>Style</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {(Object.entries(LOGO_STYLES) as [LogoStyle, typeof LOGO_STYLES[LogoStyle]][]).map(
-                  ([key, { label, description }]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setStyle(key)}
-                      className={cn(
-                        'flex flex-col items-start rounded-lg border p-3 text-left transition-colors',
-                        style === key
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
-                      )}
-                    >
-                      <span className="text-sm font-medium">{label}</span>
-                      <span className="text-xs text-muted-foreground line-clamp-1">
-                        {description}
-                      </span>
-                    </button>
-                  )
-                )}
+            {/* Basic Mode: Style Selection */}
+            {mode === 'basic' && (
+              <div className="space-y-2">
+                <Label>Style</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {(Object.entries(LOGO_STYLES) as [LogoStyle, typeof LOGO_STYLES[LogoStyle]][]).map(
+                    ([key, { label, description }]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setStyle(key)}
+                        className={cn(
+                          'flex flex-col items-start rounded-lg border p-3 text-left transition-colors',
+                          style === key
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/50'
+                        )}
+                      >
+                        <span className="text-sm font-medium">{label}</span>
+                        <span className="text-xs text-muted-foreground line-clamp-1">
+                          {description}
+                        </span>
+                      </button>
+                    )
+                  )}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Advanced Mode: Collapsible Sections */}
+            {mode === 'advanced' && (
+              <div className="space-y-3">
+                {/* Composition Section */}
+                <CollapsibleSection
+                  title="Composition"
+                  expanded={expandedSections.has('composition')}
+                  onToggle={() => toggleSection('composition')}
+                >
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Layout</Label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {(Object.entries(COMPOSITION_TYPES) as [CompositionType, typeof COMPOSITION_TYPES[CompositionType]][]).map(
+                          ([key, { label, description }]) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => updateAdvancedSetting('composition', key)}
+                              className={cn(
+                                'flex flex-col items-start rounded-lg border p-2 text-left transition-colors',
+                                advancedSettings.composition === key
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border hover:border-primary/50'
+                              )}
+                            >
+                              <span className="text-xs font-medium">{label}</span>
+                              <span className="text-[10px] text-muted-foreground line-clamp-1">
+                                {description}
+                              </span>
+                            </button>
+                          )
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Shape</Label>
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                        {(Object.entries(SHAPE_TYPES) as [ShapeType, typeof SHAPE_TYPES[ShapeType]][]).map(
+                          ([key, { label }]) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => updateAdvancedSetting('shape', key)}
+                              className={cn(
+                                'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                                advancedSettings.shape === key
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border hover:border-primary/50'
+                              )}
+                            >
+                              {label}
+                            </button>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CollapsibleSection>
+
+                {/* Colors Section */}
+                <CollapsibleSection
+                  title="Colors"
+                  expanded={expandedSections.has('colors')}
+                  onToggle={() => toggleSection('colors')}
+                >
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Palette Type</Label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {(Object.entries(PALETTE_TYPES) as [PaletteType, typeof PALETTE_TYPES[PaletteType]][]).map(
+                          ([key, { label }]) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => updateColorSetting('paletteType', key)}
+                              className={cn(
+                                'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                                advancedSettings.colors.paletteType === key
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border hover:border-primary/50'
+                              )}
+                            >
+                              {label}
+                            </button>
+                          )
+                        )}
+                      </div>
+                    </div>
+                    {/* Custom Color Pickers */}
+                    {advancedSettings.colors.paletteType === 'custom' && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-xs">Primary Color</Label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={advancedSettings.colors.primaryColor || '#3B82F6'}
+                              onChange={(e) => updateColorSetting('primaryColor', e.target.value)}
+                              className="h-8 w-12 rounded border cursor-pointer"
+                            />
+                            <Input
+                              value={advancedSettings.colors.primaryColor || ''}
+                              onChange={(e) => updateColorSetting('primaryColor', e.target.value || null)}
+                              placeholder="#3B82F6"
+                              className="h-8 text-xs font-mono"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs">Secondary Color</Label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={advancedSettings.colors.secondaryColor || '#10B981'}
+                              onChange={(e) => updateColorSetting('secondaryColor', e.target.value)}
+                              className="h-8 w-12 rounded border cursor-pointer"
+                            />
+                            <Input
+                              value={advancedSettings.colors.secondaryColor || ''}
+                              onChange={(e) => updateColorSetting('secondaryColor', e.target.value || null)}
+                              placeholder="#10B981"
+                              className="h-8 text-xs font-mono"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleSection>
+
+                {/* Style Section */}
+                <CollapsibleSection
+                  title="Style"
+                  expanded={expandedSections.has('style')}
+                  onToggle={() => toggleSection('style')}
+                >
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Icon Style</Label>
+                      <div className={cn(
+                        'grid grid-cols-3 sm:grid-cols-5 gap-2',
+                        !isIconStyleEnabled && 'opacity-50 pointer-events-none'
+                      )}>
+                        {(Object.entries(ICON_STYLES) as [IconStyle, typeof ICON_STYLES[IconStyle]][]).map(
+                          ([key, { label }]) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => updateAdvancedSetting('iconStyle', key)}
+                              disabled={!isIconStyleEnabled}
+                              className={cn(
+                                'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                                advancedSettings.iconStyle === key
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border hover:border-primary/50'
+                              )}
+                            >
+                              {label}
+                            </button>
+                          )
+                        )}
+                      </div>
+                      {!isIconStyleEnabled && (
+                        <p className="text-[10px] text-muted-foreground">
+                          Icon style disabled for wordmark-only composition
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Typography</Label>
+                      <div className={cn(
+                        'grid grid-cols-3 sm:grid-cols-5 gap-2',
+                        !isTypographyEnabled && 'opacity-50 pointer-events-none'
+                      )}>
+                        {(Object.entries(TYPOGRAPHY_STYLES) as [TypographyStyle, typeof TYPOGRAPHY_STYLES[TypographyStyle]][]).map(
+                          ([key, { label }]) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => updateAdvancedSetting('typography', key)}
+                              disabled={!isTypographyEnabled}
+                              className={cn(
+                                'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                                advancedSettings.typography === key
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border hover:border-primary/50'
+                              )}
+                            >
+                              {label}
+                            </button>
+                          )
+                        )}
+                      </div>
+                      {!isTypographyEnabled && (
+                        <p className="text-[10px] text-muted-foreground">
+                          Typography disabled for icon-only composition
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Detail Level</Label>
+                      <div className="flex gap-1">
+                        {([1, 2, 3, 4, 5] as DetailLevel[]).map((level) => (
+                          <button
+                            key={level}
+                            type="button"
+                            onClick={() => updateAdvancedSetting('detailLevel', level)}
+                            className={cn(
+                              'flex-1 rounded-lg border py-2 text-sm font-medium transition-colors',
+                              advancedSettings.detailLevel === level
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:border-primary/50'
+                            )}
+                          >
+                            {level}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex justify-between text-[10px] text-muted-foreground px-1">
+                        <span>Simple</span>
+                        <span>Intricate</span>
+                      </div>
+                    </div>
+                  </div>
+                </CollapsibleSection>
+
+                {/* Background Section */}
+                <CollapsibleSection
+                  title="Background"
+                  expanded={expandedSections.has('background')}
+                  onToggle={() => toggleSection('background')}
+                >
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {(Object.entries(BACKGROUND_TYPES) as [BackgroundType, typeof BACKGROUND_TYPES[BackgroundType]][]).map(
+                      ([key, { label, description }]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => updateAdvancedSetting('background', key)}
+                          className={cn(
+                            'flex flex-col items-start rounded-lg border p-2 text-left transition-colors',
+                            advancedSettings.background === key
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/50'
+                          )}
+                        >
+                          <span className="text-xs font-medium">{label}</span>
+                          <span className="text-[10px] text-muted-foreground line-clamp-1">
+                            {description}
+                          </span>
+                        </button>
+                      )
+                    )}
+                  </div>
+                </CollapsibleSection>
+
+                {/* Mood Section */}
+                <CollapsibleSection
+                  title="Mood"
+                  expanded={expandedSections.has('mood')}
+                  onToggle={() => toggleSection('mood')}
+                >
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {(Object.entries(LOGO_STYLES) as [LogoStyle, typeof LOGO_STYLES[LogoStyle]][]).map(
+                      ([key, { label, description }]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => updateAdvancedSetting('mood', key)}
+                          className={cn(
+                            'flex flex-col items-start rounded-lg border p-2 text-left transition-colors',
+                            advancedSettings.mood === key
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/50'
+                          )}
+                        >
+                          <span className="text-xs font-medium">{label}</span>
+                          <span className="text-[10px] text-muted-foreground line-clamp-1">
+                            {description}
+                          </span>
+                        </button>
+                      )
+                    )}
+                  </div>
+                </CollapsibleSection>
+
+                {/* Prompt Preview */}
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPromptPreview(!showPromptPreview)}
+                    className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    {showPromptPreview ? 'Hide' : 'Show'} Prompt Preview
+                  </button>
+                  {showPromptPreview && (
+                    <p className="text-xs text-muted-foreground font-mono leading-relaxed">
+                      {previewEnhancedPrompt(prompt, mode, style, advancedSettings)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             <Button
               onClick={handleGenerate}
