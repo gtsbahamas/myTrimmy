@@ -28,6 +28,7 @@ import {
   ICON_STYLES,
   TYPOGRAPHY_STYLES,
   DETAIL_LEVELS,
+  ARTIST_INFLUENCES,
   DEFAULT_ADVANCED_SETTINGS,
   previewEnhancedPrompt,
   type LogoStyle,
@@ -43,6 +44,7 @@ import {
   type IconStyle,
   type TypographyStyle,
   type DetailLevel,
+  type ArtistInfluence,
 } from '@/types/logo-generation';
 
 interface LogoGeneratorModalProps {
@@ -97,7 +99,7 @@ export function LogoGeneratorModal({
   const [style, setStyle] = React.useState<LogoStyle>('minimalist');
   const [mode, setMode] = React.useState<GeneratorMode>('basic');
   const [advancedSettings, setAdvancedSettings] = React.useState<AdvancedLogoSettings>(DEFAULT_ADVANCED_SETTINGS);
-  const [expandedSections, setExpandedSections] = React.useState<Set<string>>(new Set(['composition']));
+  const [expandedSections, setExpandedSections] = React.useState<Set<string>>(new Set());
   const [showPromptPreview, setShowPromptPreview] = React.useState(false);
   const [state, setState] = React.useState<GenerationState>('idle');
   const [variations, setVariations] = React.useState<LogoVariation[]>([]);
@@ -111,7 +113,7 @@ export function LogoGeneratorModal({
       setStyle('minimalist');
       setMode('basic');
       setAdvancedSettings(DEFAULT_ADVANCED_SETTINGS);
-      setExpandedSections(new Set(['composition']));
+      setExpandedSections(new Set());
       setShowPromptPreview(false);
       setState('idle');
       setVariations([]);
@@ -357,7 +359,53 @@ export function LogoGeneratorModal({
 
             {/* Advanced Mode: Collapsible Sections */}
             {mode === 'advanced' && (
-              <div className="space-y-3">
+              <div className="space-y-4">
+                {/* Artist Influence - PRIMARY CONTROL */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Creative Direction</Label>
+                    <span className="text-[10px] text-muted-foreground">Choose an artistic influence</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {(Object.entries(ARTIST_INFLUENCES) as [ArtistInfluence, typeof ARTIST_INFLUENCES[ArtistInfluence]][])
+                      .filter(([key]) => key !== 'none')
+                      .map(([key, { label, subtitle, description }]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => updateAdvancedSetting('artistInfluence', key)}
+                          className={cn(
+                            'flex flex-col items-start rounded-lg border p-3 text-left transition-all',
+                            advancedSettings.artistInfluence === key
+                              ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                              : 'border-border hover:border-primary/50 hover:bg-muted/30'
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{label}</span>
+                            <span className="text-[10px] text-muted-foreground">· {subtitle}</span>
+                          </div>
+                          <span className="text-[11px] text-muted-foreground mt-1 line-clamp-2">
+                            {description}
+                          </span>
+                        </button>
+                      ))}
+                  </div>
+                  {/* Show philosophy for selected artist */}
+                  {advancedSettings.artistInfluence !== 'none' && (
+                    <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground italic">
+                      &ldquo;{ARTIST_INFLUENCES[advancedSettings.artistInfluence].philosophy}&rdquo;
+                    </div>
+                  )}
+                </div>
+
+                {/* Fine-Tuning Section Header */}
+                <div className="flex items-center gap-2 pt-2">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Fine-tune (optional)</span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+
                 {/* Composition Section */}
                 <CollapsibleSection
                   title="Composition"

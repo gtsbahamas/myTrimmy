@@ -72,6 +72,108 @@ export type TypographyStyle = 'sans_serif' | 'serif' | 'script' | 'display' | 'm
 export type DetailLevel = 1 | 2 | 3 | 4 | 5;
 export type GeneratorMode = 'basic' | 'advanced';
 
+// ============================================================
+// ARTIST INFLUENCE - Creative Direction (Primary Advanced Control)
+// ============================================================
+
+export type ArtistInfluence =
+  | 'paul_rand'
+  | 'saul_bass'
+  | 'massimo_vignelli'
+  | 'japanese_minimal'
+  | 'swiss_modernist'
+  | 'contemporary_tech'
+  | 'paula_scher'
+  | 'milton_glaser'
+  | 'none';
+
+export interface ArtistInfluenceMetadata {
+  readonly label: string;
+  readonly subtitle: string;
+  readonly description: string;
+  readonly philosophy: string;
+  readonly promptModifier: string;
+  readonly examples?: readonly string[];
+}
+
+/**
+ * Artist influences with opinionated creative direction.
+ * These are PHILOSOPHIES, not attribute lists.
+ */
+export const ARTIST_INFLUENCES: Record<ArtistInfluence, ArtistInfluenceMetadata> = {
+  paul_rand: {
+    label: 'Paul Rand',
+    subtitle: 'Clever simplicity',
+    description: 'IBM, ABC, NeXT. One witty idea, geometric playfulness.',
+    philosophy: 'Reduce to a single clever concept. If you can\'t explain it to a child, simplify more.',
+    promptModifier: 'in the style of Paul Rand: single clever visual concept, witty and playful yet sophisticated, bold geometric simplicity, one memorable idea not many ideas, could be sketched in 5 seconds, timeless not trendy, confidence through restraint',
+    examples: ['IBM', 'ABC', 'UPS', 'NeXT'],
+  },
+  saul_bass: {
+    label: 'Saul Bass',
+    subtitle: 'Bold symbolism',
+    description: 'AT&T, United Airlines. Dramatic negative space, essential gesture.',
+    philosophy: 'Find the one symbolic gesture that tells the whole story. Silence is powerful.',
+    promptModifier: 'in the style of Saul Bass: bold symbolic minimalism, dramatic use of negative space, reduced to essential gesture, strong silhouette that works at any size, cinematic impact, striking simplicity, black and white thinking with strategic color',
+    examples: ['AT&T', 'United Airlines', 'Minolta'],
+  },
+  massimo_vignelli: {
+    label: 'Massimo Vignelli',
+    subtitle: 'Timeless structure',
+    description: 'NYC Subway, American Airlines. Grid precision, architectural elegance.',
+    philosophy: 'Design is not style. It is structure. Remove until only the essential remains.',
+    promptModifier: 'in the style of Massimo Vignelli: rigorous grid-based structure, architectural precision, limited to essential elements only, Helvetica-like clarity, timeless over fashionable, elegant restraint, mathematical harmony, no decoration only structure',
+    examples: ['NYC Subway', 'American Airlines', 'Knoll'],
+  },
+  japanese_minimal: {
+    label: 'Japanese Minimal',
+    subtitle: 'Ma (negative space)',
+    description: 'Muji, Kenya Hara. Emptiness as meaning, quiet confidence.',
+    philosophy: 'What you remove is more important than what you add. Emptiness creates meaning.',
+    promptModifier: 'Japanese minimalist aesthetic inspired by Kenya Hara and Muji: extreme restraint, emptiness and whitespace as primary design elements, subtle and quiet, essence not decoration, meditative simplicity, confident understatement, breathing room, less than you think you need',
+    examples: ['Muji', 'Uniqlo'],
+  },
+  swiss_modernist: {
+    label: 'Swiss Modernist',
+    subtitle: 'Rational clarity',
+    description: 'International Style. Mathematical grids, objective design.',
+    philosophy: 'Design should be universal, clear, and objective. The grid is truth.',
+    promptModifier: 'Swiss International Style: mathematical grid precision, objective and universal, clean sans-serif typography, rational not emotional, high contrast, asymmetric balance, functional clarity, systematic approach, no ornamentation',
+    examples: ['Swiss Railways', 'Lufthansa'],
+  },
+  contemporary_tech: {
+    label: 'Contemporary Tech',
+    subtitle: 'Premium minimal',
+    description: 'Stripe, Linear, Vercel. Refined geometry, sophisticated restraint.',
+    philosophy: 'Modern premium aesthetics. Subtle, refined, quietly confident.',
+    promptModifier: 'contemporary tech startup aesthetic like Stripe Linear or Vercel: refined geometric simplicity, premium minimalism, subtle sophistication, modern but not flashy, quietly confident, clean lines, purposeful negative space, works beautifully in dark mode',
+    examples: ['Stripe', 'Linear', 'Vercel', 'Notion'],
+  },
+  paula_scher: {
+    label: 'Paula Scher',
+    subtitle: 'Expressive typography',
+    description: 'Citibank, Public Theater. Bold type as art, controlled energy.',
+    philosophy: 'Type can be expressive and architectural. Break rules purposefully.',
+    promptModifier: 'in the style of Paula Scher: expressive bold typography, letterforms as architecture, energetic yet controlled, confident use of scale, type as primary visual element, dynamic composition, purposeful rule-breaking, cultural sophistication',
+    examples: ['Citibank', 'Public Theater', 'Microsoft Windows 8'],
+  },
+  milton_glaser: {
+    label: 'Milton Glaser',
+    subtitle: 'Iconic concepts',
+    description: 'I ❤ NY. Unexpected simplicity, warmth and humanity.',
+    philosophy: 'Find the unexpected combination that becomes instantly iconic.',
+    promptModifier: 'in the style of Milton Glaser: conceptual simplicity that surprises, unexpected visual combinations, warmth and humanity, instantly memorable, could become cultural icon, clever but not cold, accessible sophistication',
+    examples: ['I ❤ NY', 'Brooklyn Brewery'],
+  },
+  none: {
+    label: 'No Influence',
+    subtitle: 'Use other controls',
+    description: 'Skip artist direction, use granular controls instead.',
+    philosophy: '',
+    promptModifier: '',
+  },
+};
+
 export interface AdvancedColorSettings {
   readonly paletteType: PaletteType;
   readonly primaryColor: string | null;
@@ -79,6 +181,7 @@ export interface AdvancedColorSettings {
 }
 
 export interface AdvancedLogoSettings {
+  readonly artistInfluence: ArtistInfluence;
   readonly colors: AdvancedColorSettings;
   readonly composition: CompositionType;
   readonly shape: ShapeType;
@@ -299,6 +402,7 @@ export const DETAIL_LEVELS: Record<DetailLevel, { label: string; description: st
 // ============================================================
 
 export const DEFAULT_ADVANCED_SETTINGS: AdvancedLogoSettings = {
+  artistInfluence: 'paul_rand',
   colors: {
     paletteType: 'monochrome',
     primaryColor: null,
@@ -307,8 +411,8 @@ export const DEFAULT_ADVANCED_SETTINGS: AdvancedLogoSettings = {
   composition: 'icon_only',
   shape: 'freeform',
   background: 'white',
-  detailLevel: 3,
-  iconStyle: 'abstract',
+  detailLevel: 2,
+  iconStyle: 'geometric',
   typography: 'sans_serif',
   mood: 'minimalist',
 };
@@ -415,9 +519,63 @@ export function enhancePrompt(
 }
 
 /**
- * Builds an advanced prompt from granular settings
+ * Builds an advanced prompt from granular settings.
+ * Artist influence is PRIMARY - it drives the aesthetic philosophy.
+ * Other settings are secondary modifiers.
  */
 function buildAdvancedPrompt(userPrompt: string, settings: AdvancedLogoSettings): string {
+  const artistInfluence = ARTIST_INFLUENCES[settings.artistInfluence];
+
+  // If artist influence is selected, it drives the prompt
+  if (settings.artistInfluence !== 'none' && artistInfluence.promptModifier) {
+    return buildArtistDrivenPrompt(userPrompt, settings, artistInfluence);
+  }
+
+  // No artist influence - use granular controls (original behavior)
+  return buildGranularPrompt(userPrompt, settings);
+}
+
+/**
+ * Builds a prompt driven by artist influence.
+ * The artist's philosophy is primary; other settings are minimal modifiers.
+ */
+function buildArtistDrivenPrompt(
+  userPrompt: string,
+  settings: AdvancedLogoSettings,
+  artistInfluence: ArtistInfluenceMetadata
+): string {
+  const parts: string[] = [];
+
+  // IMPORTANT: Artist influence is the PRIMARY driver
+  // Don't dilute it with too many other modifiers
+
+  // Only add composition if it's not icon_only (the default)
+  if (settings.composition !== 'icon_only') {
+    const compMod = COMPOSITION_TYPES[settings.composition].promptModifier;
+    if (compMod) {
+      parts.push(compMod);
+    }
+  }
+
+  // Only add custom colors if specified
+  if (settings.colors.paletteType === 'custom') {
+    const colorMod = buildColorModifier(settings.colors);
+    if (colorMod) {
+      parts.push(colorMod);
+    }
+  }
+
+  // Build the final prompt with artist influence as the core
+  const secondaryMods = parts.length > 0 ? `, ${parts.join(', ')}` : '';
+
+  // Structure: Artist philosophy + user concept + minimal additions
+  return `Logo design ${artistInfluence.promptModifier}${secondaryMods}: ${userPrompt}. Pure white background, vector-style, centered.`;
+}
+
+/**
+ * Builds a prompt from granular controls (when no artist is selected).
+ */
+function buildGranularPrompt(userPrompt: string, settings: AdvancedLogoSettings): string {
   const parts: string[] = [];
 
   // Start with composition type
