@@ -110,6 +110,8 @@ export default function VideoPage() {
         body: JSON.stringify({
           sourceUrl,
           ...options,
+          // Pass pre-analyzed data to avoid re-analyzing
+          siteAnalysis: analysisData?.analysis,
         }),
       });
 

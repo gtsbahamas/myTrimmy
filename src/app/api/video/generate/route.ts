@@ -83,13 +83,22 @@ export async function POST(request: NextRequest) {
   const bundleId = crypto.randomUUID();
 
   try {
-    // Run URL analysis with Playwright
-    console.log(`[/api/video/generate] Analyzing URL: ${body.sourceUrl}`);
-    const siteAnalysis: SiteAnalysis = await analyzeUrl(body.sourceUrl, {
-      userId: auth.userId,
-      bundleId,
-      timeout: 30000,
-    });
+    // Use pre-analyzed data if provided, otherwise run analysis
+    let siteAnalysis: SiteAnalysis;
+
+    if (body.siteAnalysis) {
+      // Use the pre-analyzed data from the /analyze endpoint
+      console.log(`[/api/video/generate] Using pre-analyzed data for: ${body.sourceUrl}`);
+      siteAnalysis = body.siteAnalysis;
+    } else {
+      // Fallback: Run URL analysis with Playwright (slower path)
+      console.log(`[/api/video/generate] No pre-analyzed data, analyzing URL: ${body.sourceUrl}`);
+      siteAnalysis = await analyzeUrl(body.sourceUrl, {
+        userId: auth.userId,
+        bundleId,
+        timeout: 30000,
+      });
+    }
 
     // Create video bundle record with real analysis
     const bundle = await videoBundleRepository.create({

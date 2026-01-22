@@ -280,6 +280,8 @@ export interface GenerateVideoRequest {
   style: VideoStyle;
   musicMood: MusicMood;
   durationSeconds: number;
+  /** Pre-analyzed site data - if provided, skips re-analysis */
+  siteAnalysis?: SiteAnalysis;
 }
 
 export interface GenerateVideoResponse {
