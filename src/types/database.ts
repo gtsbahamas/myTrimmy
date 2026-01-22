@@ -446,6 +446,213 @@ export type Database = {
           },
         ]
       }
+      video_bundles: {
+        Row: {
+          id: string
+          user_id: string
+          source_url: string
+          site_analysis: Json
+          style: string
+          music_mood: string
+          duration_seconds: number
+          status: string
+          validation_result: Json | null
+          gemini_review: Json | null
+          outputs: Json | null
+          edit_count: number
+          last_edited_at: string | null
+          created_at: string
+          completed_at: string | null
+          error_message: string | null
+          error_details: Json | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          source_url: string
+          site_analysis: Json
+          style: string
+          music_mood: string
+          duration_seconds: number
+          status?: string
+          validation_result?: Json | null
+          gemini_review?: Json | null
+          outputs?: Json | null
+          edit_count?: number
+          last_edited_at?: string | null
+          created_at?: string
+          completed_at?: string | null
+          error_message?: string | null
+          error_details?: Json | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          source_url?: string
+          site_analysis?: Json
+          style?: string
+          music_mood?: string
+          duration_seconds?: number
+          status?: string
+          validation_result?: Json | null
+          gemini_review?: Json | null
+          outputs?: Json | null
+          edit_count?: number
+          last_edited_at?: string | null
+          created_at?: string
+          completed_at?: string | null
+          error_message?: string | null
+          error_details?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_bundles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          plan: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          current_period_start: string | null
+          current_period_end: string | null
+          video_bundles_used: number
+          video_bundles_limit: number | null
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          plan: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          video_bundles_used?: number
+          video_bundles_limit?: number | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          plan?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          video_bundles_used?: number
+          video_bundles_limit?: number | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_edits: {
+        Row: {
+          id: string
+          video_bundle_id: string
+          edit_type: string
+          changes: Json
+          applied_at: string
+          applied_by: string
+        }
+        Insert: {
+          id?: string
+          video_bundle_id: string
+          edit_type: string
+          changes: Json
+          applied_at?: string
+          applied_by: string
+        }
+        Update: {
+          id?: string
+          video_bundle_id?: string
+          edit_type?: string
+          changes?: Json
+          applied_at?: string
+          applied_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_edits_video_bundle_id_fkey"
+            columns: ["video_bundle_id"]
+            isOneToOne: false
+            referencedRelation: "video_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_edits_applied_by_fkey"
+            columns: ["applied_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fal_jobs: {
+        Row: {
+          id: string
+          video_bundle_id: string
+          fal_request_id: string
+          job_type: string
+          status: string
+          output_url: string | null
+          error_message: string | null
+          created_at: string
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          video_bundle_id: string
+          fal_request_id: string
+          job_type: string
+          status?: string
+          output_url?: string | null
+          error_message?: string | null
+          created_at?: string
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          video_bundle_id?: string
+          fal_request_id?: string
+          job_type?: string
+          status?: string
+          output_url?: string | null
+          error_message?: string | null
+          created_at?: string
+          completed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fal_jobs_video_bundle_id_fkey"
+            columns: ["video_bundle_id"]
+            isOneToOne: false
+            referencedRelation: "video_bundles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
