@@ -54,11 +54,20 @@ export async function POST(request: NextRequest) {
   const job = await falJobRepository.getByRequestId(payload.request_id);
   if (!job) {
     console.error(`[webhook/fal] Job not found: ${payload.request_id}`);
-    // Return 200 anyway to prevent Fal from retrying
-    return NextResponse.json({ received: true, error: 'Job not found' });
+    // Return 404 so Fal knows the job doesn't exist (won't retry)
+    return NextResponse.json(
+      { received: false, error: 'Job not found' },
+      { status: 404 }
+    );
   }
 
   console.log(`[webhook/fal] Found job ${job.id} for bundle ${job.video_bundle_id}`);
+
+  // Idempotency check: skip if job already processed
+  if (job.status === 'completed' || job.status === 'failed') {
+    console.log(`[webhook/fal] Job ${job.id} already in terminal state: ${job.status}, skipping`);
+    return NextResponse.json({ received: true, already_processed: true });
+  }
 
   // Handle success
   if (payload.status === 'OK') {
@@ -84,6 +93,16 @@ export async function POST(request: NextRequest) {
         errorMessage: error instanceof Error ? error.message : 'Failed to retrieve result',
         completedAt: new Date().toISOString(),
       });
+
+      // ERR-001 FIX: Return error status so Fal can retry
+      return NextResponse.json(
+        {
+          received: true,
+          error: 'Failed to process job result',
+          job_id: job.id,
+        },
+        { status: 500 }
+      );
     }
   }
 
@@ -120,11 +139,21 @@ export async function POST(request: NextRequest) {
       } else {
         // Some succeeded - proceed with partial assets (graceful degradation)
         console.log(`[webhook/fal] ${successfulJobs.length}/3 jobs succeeded, proceeding with partial assets`);
-        await proceedToComposing(job.video_bundle_id, jobs);
+        try {
+          await proceedToComposing(job.video_bundle_id, jobs);
+        } catch (error) {
+          console.error(`[webhook/fal] Failed to transition to composing:`, error);
+          // Don't return 500 - the webhook job is done, composition is a separate concern
+        }
       }
     } else {
       // All succeeded - proceed to composing phase
-      await proceedToComposing(job.video_bundle_id, jobs);
+      try {
+        await proceedToComposing(job.video_bundle_id, jobs);
+      } catch (error) {
+        console.error(`[webhook/fal] Failed to transition to composing:`, error);
+        // Don't return 500 - the webhook job is done, composition is a separate concern
+      }
     }
   }
 
