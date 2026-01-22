@@ -35,3 +35,6 @@ coverage/
 .claude/
 .env*.local
 test-results/
+
+# Git worktrees
+.worktrees/
