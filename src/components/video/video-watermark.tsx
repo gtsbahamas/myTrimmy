@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 interface VideoWatermarkProps {
@@ -54,12 +55,12 @@ export function VideoWatermark({ show, className }: VideoWatermarkProps) {
               Made with Iconym
             </span>
           </div>
-          <a
+          <Link
             href="/settings"
             className="px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-sm font-medium transition-colors pointer-events-auto"
           >
             Remove Watermark
-          </a>
+          </Link>
         </div>
       </div>
     </div>
