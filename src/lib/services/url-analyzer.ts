@@ -542,9 +542,10 @@ export async function analyzeUrl(
     const browserlessToken = process.env.BROWSERLESS_API_KEY;
 
     if (browserlessToken) {
-      log('info', 'Connecting to Browserless.io');
-      browser = await chromium.connect(
-        `wss://production-sfo.browserless.io/chromium/playwright?token=${browserlessToken}`
+      log('info', 'Connecting to Browserless.io via CDP');
+      // Use CDP connection method which is more version-tolerant than native Playwright protocol
+      browser = await chromium.connectOverCDP(
+        `wss://production-sfo.browserless.io?token=${browserlessToken}`
       );
     } else {
       log('info', 'Launching local browser (no BROWSERLESS_API_KEY)');
