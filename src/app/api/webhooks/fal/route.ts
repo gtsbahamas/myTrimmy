@@ -9,7 +9,7 @@ import {
   getModelForJobType,
 } from '@/lib/services/fal-video';
 import { validateFalWebhookSecret } from '@/lib/services/webhook-security';
-import type { FalJobType } from '@/types/video-bundle';
+import type { FalJobType, FalAssets } from '@/types/video-bundle';
 
 // Get the base URL for internal API calls
 function getWebhookBaseUrl(): string {
@@ -189,7 +189,7 @@ async function proceedToComposing(
   console.log(`[webhook/fal] Transitioning bundle ${videoBundleId} to composing phase`);
 
   // Collect Fal asset URLs
-  const falAssets: Record<string, string | null> = {
+  const falAssets: FalAssets = {
     intro: null,
     background: null,
     outro: null,
@@ -197,15 +197,17 @@ async function proceedToComposing(
 
   for (const job of jobs) {
     if (job.status === 'completed' && job.output_url) {
-      falAssets[job.job_type] = job.output_url;
+      const jobType = job.job_type as keyof FalAssets;
+      falAssets[jobType] = job.output_url;
     }
   }
 
   console.log(`[webhook/fal] Fal assets:`, falAssets);
 
-  // Update bundle status to composing
+  // Update bundle status to composing and save fal assets
   await videoBundleRepository.updateStatusServiceRole(videoBundleId, {
     status: 'composing',
+    falAssets,
   });
 
   // Call the compose API to trigger script generation and Lambda rendering
