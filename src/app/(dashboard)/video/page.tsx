@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import { Video, Sparkles } from 'lucide-react';
-import { UrlInput, CustomizationPanel, GenerationProgress, VideoPreview } from '@/components/video';
+import { UrlInput, CustomizationPanel, GenerationProgress, VideoPreview, UsageQuota } from '@/components/video';
+import { useTrack, useFlowTracker } from '@/lib/analytics';
 import type {
   AnalyzeUrlResponse,
   GenerateVideoResponse,
@@ -13,6 +14,13 @@ import type {
 
 type Step = 'input' | 'customize' | 'generating' | 'complete';
 
+interface UserQuota {
+  used: number;
+  limit: number | null;
+  plan: string;
+  canGenerate: boolean;
+}
+
 export default function VideoPage() {
   const [step, setStep] = React.useState<Step>('input');
   const [sourceUrl, setSourceUrl] = React.useState('');
@@ -21,12 +29,36 @@ export default function VideoPage() {
   const [statusData, setStatusData] = React.useState<VideoBundleStatusResponse | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [quota, setQuota] = React.useState<UserQuota | null>(null);
+
+  // Analytics tracking
+  const { trackFeature, trackError, trackFlowCompleted } = useTrack();
+  const generationFlow = useFlowTracker('video_generation', 'Video Bundle Generation', 'core');
+
+  // Fetch user quota on mount
+  React.useEffect(() => {
+    generationFlow.defineSteps(['analyze', 'customize', 'generate', 'complete']);
+
+    fetch('/api/video/quota')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) {
+          setQuota(data);
+        }
+      })
+      .catch(() => {
+        // Silently fail - quota display is non-critical
+      });
+  }, [generationFlow]);
 
   // Analyze URL
   const handleAnalyze = async (url: string) => {
     setIsLoading(true);
     setError(null);
     setSourceUrl(url);
+
+    // Track feature usage
+    trackFeature('video_bundle_analyze', 'URL Analysis', { url_domain: new URL(url).hostname });
 
     try {
       const res = await fetch('/api/video/analyze', {
@@ -43,8 +75,11 @@ export default function VideoPage() {
       const data: AnalyzeUrlResponse = await res.json();
       setAnalysisData(data);
       setStep('customize');
+      generationFlow.stepCompleted('analyze');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to analyze URL');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to analyze URL';
+      setError(errorMsg);
+      trackError('video_analyze_failed', errorMsg, 'VideoPage');
     } finally {
       setIsLoading(false);
     }
@@ -59,6 +94,14 @@ export default function VideoPage() {
     setIsLoading(true);
     setError(null);
     setStep('generating');
+
+    // Track customization step
+    generationFlow.stepCompleted('customize');
+    trackFeature('video_bundle_generate', 'Video Generation', {
+      style: options.style,
+      music_mood: options.musicMood,
+      duration: options.durationSeconds,
+    });
 
     try {
       const res = await fetch('/api/video/generate', {
@@ -77,12 +120,15 @@ export default function VideoPage() {
 
       const data: GenerateVideoResponse = await res.json();
       setBundleId(data.bundleId);
+      generationFlow.stepCompleted('generate');
 
       // Start polling for status
       pollStatus(data.bundleId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate videos');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to generate videos';
+      setError(errorMsg);
       setStep('customize');
+      trackError('video_generate_failed', errorMsg, 'VideoPage');
     } finally {
       setIsLoading(false);
     }
@@ -100,11 +146,23 @@ export default function VideoPage() {
 
         if (data.status === 'completed') {
           setStep('complete');
+          generationFlow.stepCompleted('complete');
+          generationFlow.complete(true);
+          trackFeature('video_bundle_completed', 'Video Bundle Completed', {
+            bundle_id: id,
+          });
+          // Refresh quota after successful generation
+          fetch('/api/video/quota')
+            .then(res => res.ok ? res.json() : null)
+            .then(quotaData => quotaData && setQuota(quotaData))
+            .catch(() => {});
           return;
         }
 
         if (data.status === 'failed') {
           setError(data.error || 'Generation failed');
+          generationFlow.complete(false);
+          trackError('video_generation_failed', data.error || 'Unknown error', 'VideoPage');
           return;
         }
 
@@ -117,7 +175,7 @@ export default function VideoPage() {
     };
 
     poll();
-  }, []);
+  }, [generationFlow, trackFeature, trackError]);
 
   // Regenerate
   const handleRegenerate = () => {
@@ -155,15 +213,24 @@ export default function VideoPage() {
                 </p>
               </div>
             </div>
-            {step !== 'input' && (
-              <button
-                type="button"
-                onClick={handleReset}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Start Over
-              </button>
-            )}
+            <div className="flex items-center gap-4">
+              {quota && (
+                <UsageQuota
+                  used={quota.used}
+                  limit={quota.limit}
+                  plan={quota.plan}
+                />
+              )}
+              {step !== 'input' && (
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Start Over
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -239,6 +306,15 @@ export default function VideoPage() {
             progress={statusData.progress}
             currentStep={statusData.currentStep}
             error={statusData.error}
+            onRetry={statusData.status === 'failed' ? () => {
+              // Re-trigger generation with same parameters
+              if (analysisData) {
+                setStep('customize');
+                setStatusData(null);
+                setBundleId(null);
+              }
+            } : undefined}
+            onStartOver={statusData.status === 'failed' ? handleReset : undefined}
           />
         )}
 
@@ -247,6 +323,7 @@ export default function VideoPage() {
             status="pending"
             progress={0}
             currentStep="Starting generation..."
+            onStartOver={handleReset}
           />
         )}
 
@@ -254,6 +331,7 @@ export default function VideoPage() {
           <VideoPreview
             outputs={statusData.outputs}
             onRegenerate={handleRegenerate}
+            showWatermark={quota?.plan === 'free'}
           />
         )}
       </div>

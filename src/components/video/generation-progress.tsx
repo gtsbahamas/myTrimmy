@@ -1,8 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { Check, Loader2, Circle } from 'lucide-react';
+import { Check, Loader2, Circle, RefreshCw, AlertCircle, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import type { VideoBundleStatus } from '@/types/video-bundle';
 
 interface GenerationProgressProps {
@@ -10,6 +11,8 @@ interface GenerationProgressProps {
   progress: number;
   currentStep: string;
   error?: string | null;
+  onRetry?: () => void;
+  onStartOver?: () => void;
 }
 
 const STEPS: { status: VideoBundleStatus; label: string }[] = [
@@ -31,25 +34,155 @@ const STATUS_ORDER: VideoBundleStatus[] = [
   'completed',
 ];
 
+// Error classification for user-friendly messaging
+type ErrorType = 'transient' | 'user_fixable' | 'recoverable' | 'fatal';
+
+function classifyError(errorMessage?: string | null): { type: ErrorType; title: string; description: string; canRetry: boolean } {
+  if (!errorMessage) {
+    return {
+      type: 'transient',
+      title: 'Something went wrong',
+      description: 'An unexpected error occurred. Please try again.',
+      canRetry: true,
+    };
+  }
+
+  const lowerError = errorMessage.toLowerCase();
+
+  // User-fixable errors
+  if (lowerError.includes('invalid url') || lowerError.includes('url format')) {
+    return {
+      type: 'user_fixable',
+      title: 'Invalid URL',
+      description: 'Please check the URL and make sure it\'s a valid, publicly accessible website.',
+      canRetry: false,
+    };
+  }
+
+  if (lowerError.includes('no content') || lowerError.includes('empty page')) {
+    return {
+      type: 'user_fixable',
+      title: 'Not Enough Content',
+      description: 'The page doesn\'t have enough content to analyze. Try a page with more text and images.',
+      canRetry: false,
+    };
+  }
+
+  if (lowerError.includes('access denied') || lowerError.includes('403') || lowerError.includes('blocked')) {
+    return {
+      type: 'user_fixable',
+      title: 'Page Not Accessible',
+      description: 'We couldn\'t access this page. Make sure it\'s publicly accessible (not behind a login).',
+      canRetry: false,
+    };
+  }
+
+  // Transient errors (can retry)
+  if (lowerError.includes('timeout') || lowerError.includes('timed out')) {
+    return {
+      type: 'transient',
+      title: 'Request Timed Out',
+      description: 'The page took too long to load. We\'ve saved your progress - try again to resume.',
+      canRetry: true,
+    };
+  }
+
+  if (lowerError.includes('rate limit') || lowerError.includes('too many requests')) {
+    return {
+      type: 'transient',
+      title: 'Too Many Requests',
+      description: 'Please wait a moment and try again.',
+      canRetry: true,
+    };
+  }
+
+  if (lowerError.includes('network') || lowerError.includes('connection')) {
+    return {
+      type: 'transient',
+      title: 'Network Error',
+      description: 'There was a connection issue. Please check your internet and try again.',
+      canRetry: true,
+    };
+  }
+
+  // Recoverable errors (partial success possible)
+  if (lowerError.includes('partial') || lowerError.includes('some formats')) {
+    return {
+      type: 'recoverable',
+      title: 'Partial Success',
+      description: 'Some video formats were generated. You can download what\'s available or retry the failed ones.',
+      canRetry: true,
+    };
+  }
+
+  // Fatal errors
+  if (lowerError.includes('quota') || lowerError.includes('limit exceeded')) {
+    return {
+      type: 'fatal',
+      title: 'Generation Limit Reached',
+      description: 'You\'ve used all your video generations this month. Upgrade your plan for more.',
+      canRetry: false,
+    };
+  }
+
+  // Default to transient
+  return {
+    type: 'transient',
+    title: 'Generation Failed',
+    description: errorMessage,
+    canRetry: true,
+  };
+}
+
 export function GenerationProgress({
   status,
   progress,
   currentStep,
   error,
+  onRetry,
+  onStartOver,
 }: GenerationProgressProps) {
   const currentIndex = STATUS_ORDER.indexOf(status);
 
   if (status === 'failed') {
+    const errorInfo = classifyError(error);
+
     return (
       <div className="w-full max-w-xl mx-auto p-8 rounded-2xl border border-destructive/50 bg-destructive/5">
         <div className="text-center space-y-4">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10">
-            <span className="text-3xl">😔</span>
+            <AlertCircle className="w-8 h-8 text-destructive" />
           </div>
-          <h3 className="text-xl font-semibold">Generation Failed</h3>
+          <h3 className="text-xl font-semibold">{errorInfo.title}</h3>
           <p className="text-muted-foreground">
-            {error || 'Something went wrong. Please try again.'}
+            {errorInfo.description}
           </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+            {errorInfo.canRetry && onRetry && (
+              <Button onClick={onRetry} className="gap-2">
+                <RefreshCw className="w-4 h-4" />
+                Try Again
+              </Button>
+            )}
+            {onStartOver && (
+              <Button variant="outline" onClick={onStartOver}>
+                Start Over
+              </Button>
+            )}
+          </div>
+
+          {errorInfo.type === 'fatal' && (
+            <div className="mt-4 pt-4 border-t border-border/50">
+              <a
+                href="/settings"
+                className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+              >
+                <HelpCircle className="w-4 h-4" />
+                View your plan and usage
+              </a>
+            </div>
+          )}
         </div>
       </div>
     );
