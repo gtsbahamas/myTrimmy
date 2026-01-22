@@ -3,7 +3,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthFromRequest } from '@/lib/supabase/server';
 import { subscriptionRepository } from '@/lib/repositories/subscriptions';
-import type { AnalyzeUrlRequest, AnalyzeUrlResponse } from '@/types/video-bundle';
+import { analyzeUrl } from '@/lib/services/url-analyzer';
+import type { AnalyzeUrlRequest, AnalyzeUrlResponse, VideoStyle, MusicMood } from '@/types/video-bundle';
 
 export async function POST(request: NextRequest) {
   // Authenticate
@@ -12,11 +13,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: 401 });
   }
 
-  // Check subscription
+  // Check subscription - free users can preview/analyze (watermarked output)
   const quota = await subscriptionRepository.canUserGenerateVideo(auth.userId);
   if (!quota.canGenerate && quota.plan !== 'free') {
     return NextResponse.json(
-      { error: 'Video generation quota exceeded', quota },
+      { error: 'Video generation quota exceeded' },
       { status: 403 }
     );
   }
@@ -34,41 +35,84 @@ export async function POST(request: NextRequest) {
   }
 
   // Validate URL format
+  let parsedUrl: URL;
   try {
-    new URL(body.url);
+    parsedUrl = new URL(body.url);
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new Error('Invalid protocol');
+    }
   } catch {
-    return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid URL format. Must be http or https.' }, { status: 400 });
   }
 
-  // TODO: Implement URL analysis with Playwright
-  // For now, return a placeholder response
-  const response: AnalyzeUrlResponse = {
-    analysis: {
-      screenshots: {
-        full: '', // TODO: Generate screenshot
-        sections: [],
-      },
-      colors: {
-        primary: '#f59e0b',
-        secondary: '#1f2937',
-        accent: '#f59e0b',
-        background: '#111827',
-        text: '#f9fafb',
-      },
-      content: {
-        headline: 'Your Website',
-        subheadline: null,
-        features: [],
-        stats: [],
-        cta: 'Learn More',
-      },
-      logoUrl: null,
-      siteType: 'other',
-    },
-    suggestedStyle: 'minimal',
-    suggestedMusicMood: 'ambient',
-    suggestedDuration: 45,
-  };
+  try {
+    // Run real URL analysis with Playwright
+    const analysis = await analyzeUrl(body.url, {
+      userId: auth.userId,
+      timeout: 30000,
+    });
 
-  return NextResponse.json(response);
+    // Suggest style based on site type
+    const suggestedStyle: VideoStyle = suggestStyle(analysis.siteType);
+
+    // Suggest music mood based on content
+    const suggestedMusicMood: MusicMood = suggestMusicMood(analysis.siteType, analysis.content.features.length);
+
+    // Suggest duration based on content amount
+    const suggestedDuration = suggestDuration(analysis.content);
+
+    const response: AnalyzeUrlResponse = {
+      analysis,
+      suggestedStyle,
+      suggestedMusicMood,
+      suggestedDuration,
+    };
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error('[/api/video/analyze] Analysis failed:', error);
+    return NextResponse.json(
+      { error: 'Failed to analyze URL. Please try again.' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Suggest video style based on site type
+ */
+function suggestStyle(siteType: string): VideoStyle {
+  switch (siteType) {
+    case 'tech':
+      return 'minimal';
+    case 'ecommerce':
+      return 'energetic';
+    case 'enterprise':
+      return 'professional';
+    default:
+      return 'minimal';
+  }
+}
+
+/**
+ * Suggest music mood based on site characteristics
+ */
+function suggestMusicMood(siteType: string, featureCount: number): MusicMood {
+  if (siteType === 'enterprise') return 'cinematic';
+  if (siteType === 'ecommerce') return 'upbeat';
+  if (featureCount >= 4) return 'upbeat';
+  return 'ambient';
+}
+
+/**
+ * Suggest video duration based on content amount
+ */
+function suggestDuration(content: { features: string[]; stats: string[] }): number {
+  const contentItems = content.features.length + content.stats.length;
+
+  // Base: 30 seconds
+  // Add 5 seconds per feature/stat, up to 90 max
+  const duration = Math.min(90, Math.max(30, 30 + contentItems * 5));
+
+  return duration;
 }
