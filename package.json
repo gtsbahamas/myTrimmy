@@ -16,6 +16,9 @@
     "verify:deploy": "npx tsx scripts/verify-deploy.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
+    "@fal-ai/client": "^1.8.3",
+    "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.9.1",
     "@imgly/background-removal": "^1.7.0",
     "@radix-ui/react-alert-dialog": "^1.1.4",
