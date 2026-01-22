@@ -101,6 +101,27 @@ export class VideoBundleRepository {
   }
 
   /**
+   * Get the user_id for a video bundle (service role)
+   * Used for ownership validation in related tables
+   */
+  async getOwnerUserId(bundleId: string): Promise<string | null> {
+    const supabase = createServiceRoleClient();
+
+    const { data, error } = await supabase
+      .from('video_bundles')
+      .select('user_id')
+      .eq('id', bundleId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found
+      throw new Error(`Failed to get bundle owner: ${error.message}`);
+    }
+
+    return data?.user_id ?? null;
+  }
+
+  /**
    * Update a video bundle (user-scoped via RLS)
    */
   async update(id: string, params: UpdateVideoBundleParams): Promise<VideoBundleRow> {

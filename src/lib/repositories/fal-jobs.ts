@@ -62,6 +62,31 @@ export class FalJobRepository {
   }
 
   /**
+   * Get a Fal job by request ID with ownership validation
+   * Use this for user-facing operations
+   */
+  async getByRequestIdForUser(requestId: string, userId: string): Promise<FalJobRow | null> {
+    const supabase = createServiceRoleClient();
+
+    const { data, error } = await supabase
+      .from('fal_jobs')
+      .select(`
+        *,
+        video_bundles!inner(user_id)
+      `)
+      .eq('fal_request_id', requestId)
+      .eq('video_bundles.user_id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found or unauthorized
+      throw new Error(`Failed to get Fal job: ${error.message}`);
+    }
+
+    return data as unknown as FalJobRow;
+  }
+
+  /**
    * Get all Fal jobs for a video bundle
    */
   async getByBundleId(videoBundleId: string): Promise<FalJobRow[]> {
@@ -71,6 +96,29 @@ export class FalJobRepository {
       .from('fal_jobs')
       .select()
       .eq('video_bundle_id', videoBundleId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to get Fal jobs: ${error.message}`);
+    }
+
+    return (data ?? []) as unknown as FalJobRow[];
+  }
+
+  /**
+   * Get all Fal jobs for a video bundle with ownership validation
+   */
+  async getByBundleIdForUser(videoBundleId: string, userId: string): Promise<FalJobRow[]> {
+    const supabase = createServiceRoleClient();
+
+    const { data, error } = await supabase
+      .from('fal_jobs')
+      .select(`
+        *,
+        video_bundles!inner(user_id)
+      `)
+      .eq('video_bundle_id', videoBundleId)
+      .eq('video_bundles.user_id', userId)
       .order('created_at', { ascending: true });
 
     if (error) {
