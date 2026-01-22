@@ -1,7 +1,7 @@
 // remotion.config.ts
 import { Config } from '@remotion/cli/config';
 
-Config.setEntryPoint('./src/remotion/Root.tsx');
+Config.setEntryPoint('./src/remotion/entry.tsx');
 
 // Enable webpack caching for faster rebuilds
 Config.setCachingEnabled(true);

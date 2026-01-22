@@ -273,10 +273,10 @@ export interface VideoBundleStatusResponse {
 // ============================================
 
 export const SUBSCRIPTION_LIMITS: Record<SubscriptionPlan, { videoBundles: number | null }> = {
-  free: { videoBundles: 0 }, // Preview only (watermarked)
-  pro: { videoBundles: 0 },  // No video access
-  studio: { videoBundles: 5 },
-  studio_annual: { videoBundles: 5 },
+  free: { videoBundles: 3 }, // Free tier gets 3 watermarked videos
+  pro: { videoBundles: 5 },  // Pro tier gets 5 videos
+  studio: { videoBundles: 20 },
+  studio_annual: { videoBundles: 20 },
   agency: { videoBundles: null }, // Unlimited
 };
 

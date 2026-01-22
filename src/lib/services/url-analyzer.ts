@@ -544,7 +544,7 @@ export async function analyzeUrl(
     if (browserlessToken) {
       log('info', 'Connecting to Browserless.io');
       browser = await chromium.connect(
-        `wss://chrome.browserless.io/playwright?token=${browserlessToken}`
+        `wss://production-sfo.browserless.io/chromium/playwright?token=${browserlessToken}`
       );
     } else {
       log('info', 'Launching local browser (no BROWSERLESS_API_KEY)');
