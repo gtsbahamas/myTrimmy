@@ -5,8 +5,19 @@ import { getAuthFromRequest } from '@/lib/supabase/server';
 import { videoBundleRepository } from '@/lib/repositories/video-bundles';
 import { subscriptionRepository } from '@/lib/repositories/subscriptions';
 import { analyzeUrl } from '@/lib/services/url-analyzer';
+import { generateFalAssets } from '@/lib/services/fal-video';
 import type { GenerateVideoRequest, GenerateVideoResponse, SiteAnalysis } from '@/types/video-bundle';
 import { VIDEO_STYLES, MUSIC_MOODS } from '@/types/video-bundle';
+
+// Get the base URL for webhooks
+function getWebhookBaseUrl(): string {
+  // In production, use VERCEL_URL or a configured domain
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  // Fallback for local development
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+}
 
 export async function POST(request: NextRequest) {
   // Authenticate
@@ -89,8 +100,24 @@ export async function POST(request: NextRequest) {
       status: 'analyzing',
     });
 
-    // Note: Actual video rendering will be triggered in Phase 2
-    // The bundle is created and can be polled for status
+    // Trigger Fal.ai video generation (async with webhooks)
+    const webhookUrl = `${getWebhookBaseUrl()}/api/webhooks/fal`;
+    console.log(`[/api/video/generate] Triggering Fal.ai generation with webhook: ${webhookUrl}`);
+
+    try {
+      await generateFalAssets({
+        videoBundleId: bundle.id,
+        style: body.style as typeof VIDEO_STYLES[number],
+        colors: siteAnalysis.colors,
+        brandName: siteAnalysis.content.headline || 'Brand',
+        webhookUrl,
+      });
+      console.log(`[/api/video/generate] Fal.ai jobs submitted for bundle ${bundle.id}`);
+    } catch (falError) {
+      // Log but don't fail the request - fallback rendering is possible
+      console.error('[/api/video/generate] Fal.ai submission failed:', falError);
+      // Continue with the flow - Remotion can render without AI assets
+    }
 
     const response: GenerateVideoResponse = {
       bundleId: bundle.id,
