@@ -12,6 +12,7 @@
 
 import { chromium, type Browser, type Page } from 'playwright-core';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { validateUrlForSSRF } from './url-validator';
 import type {
   SiteAnalysis,
   ColorPalette,
@@ -528,16 +529,14 @@ export async function analyzeUrl(
   };
 
   try {
-    // Validate URL
-    let parsedUrl: URL;
-    try {
-      parsedUrl = new URL(url);
-      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-        throw new Error('Invalid protocol');
-      }
-    } catch {
-      throw new Error(`Invalid URL: ${url}`);
+    // Validate URL (SEC-004 SSRF protection)
+    const urlValidation = validateUrlForSSRF(url);
+    if (!urlValidation.valid) {
+      throw new Error(`URL validation failed: ${urlValidation.error}`);
     }
+
+    // Use sanitized URL
+    const parsedUrl = new URL(urlValidation.sanitizedUrl!);
 
     // Launch browser
     log('info', 'Launching browser');
