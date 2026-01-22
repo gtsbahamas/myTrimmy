@@ -5,12 +5,14 @@ import Image from 'next/image';
 import { Download, Play, Pause, Monitor, Smartphone, Square, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { VideoWatermark } from './video-watermark';
 import type { VideoOutputs, VideoFormat } from '@/types/video-bundle';
 
 interface VideoPreviewProps {
   outputs: VideoOutputs;
   onRegenerate?: () => void;
   isRegenerating?: boolean;
+  showWatermark?: boolean;
 }
 
 const FORMAT_CONFIG: {
@@ -28,6 +30,7 @@ export function VideoPreview({
   outputs,
   onRegenerate,
   isRegenerating = false,
+  showWatermark = false,
 }: VideoPreviewProps) {
   const [selectedFormat, setSelectedFormat] = React.useState<VideoFormat>('landscape');
   const [isPlaying, setIsPlaying] = React.useState(false);
@@ -134,6 +137,9 @@ export function VideoPreview({
         <div className="absolute top-4 left-4 px-3 py-1.5 rounded-full bg-black/60 text-white text-sm font-medium">
           {config.label} • {config.dimensions}
         </div>
+
+        {/* Watermark for free tier */}
+        <VideoWatermark show={showWatermark} />
       </div>
 
       {/* Format Thumbnails */}
