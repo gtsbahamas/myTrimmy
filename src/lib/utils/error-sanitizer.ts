@@ -40,10 +40,32 @@ export function sanitizeErrorMessage(message: string): string {
   let sanitized = message;
 
   for (const pattern of SENSITIVE_PATTERNS) {
+    // Reset lastIndex to avoid global regex state issues
+    pattern.lastIndex = 0;
     sanitized = sanitized.replace(pattern, REDACTED);
   }
 
   return sanitized;
+}
+
+/**
+ * Recursively sanitize a value (string, array, or object)
+ */
+function sanitizeValue(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return sanitizeErrorMessage(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map(sanitizeValue);
+  }
+  if (typeof value === 'object' && value !== null) {
+    const sanitized: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(value)) {
+      sanitized[key] = sanitizeValue(val);
+    }
+    return sanitized;
+  }
+  return value;
 }
 
 /**
@@ -66,11 +88,7 @@ export function sanitizeErrorForLogging(error: unknown): Record<string, unknown>
   if (typeof error === 'object' && error !== null) {
     const sanitized: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(error)) {
-      if (typeof value === 'string') {
-        sanitized[key] = sanitizeErrorMessage(value);
-      } else {
-        sanitized[key] = value;
-      }
+      sanitized[key] = sanitizeValue(value);
     }
     return sanitized;
   }
