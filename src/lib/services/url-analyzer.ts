@@ -5,8 +5,8 @@
 // 1. Add playwright-core as a production dependency:
 //    npm install playwright-core
 //
-// 2. For serverless/Edge deployments, consider using @playwright/browser-chromium
-//    or a browser-as-a-service like Browserless.io
+// 2. Set BROWSERLESS_API_KEY environment variable for cloud browser service
+//    Without this, falls back to local browser (dev only)
 //
 // 3. Ensure the 'video-bundles' storage bucket exists in Supabase with public access
 
@@ -538,11 +538,20 @@ export async function analyzeUrl(
     // Use sanitized URL
     const parsedUrl = new URL(urlValidation.sanitizedUrl!);
 
-    // Launch browser
-    log('info', 'Launching browser');
-    browser = await chromium.launch({
-      headless: true,
-    });
+    // Connect to browser (Browserless.io in production, local in development)
+    const browserlessToken = process.env.BROWSERLESS_API_KEY;
+
+    if (browserlessToken) {
+      log('info', 'Connecting to Browserless.io');
+      browser = await chromium.connect(
+        `wss://chrome.browserless.io/playwright?token=${browserlessToken}`
+      );
+    } else {
+      log('info', 'Launching local browser (no BROWSERLESS_API_KEY)');
+      browser = await chromium.launch({
+        headless: true,
+      });
+    }
 
     const context = await browser.newContext({
       viewport: VIEWPORT,
