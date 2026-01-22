@@ -10,72 +10,94 @@ import { analyzeUrl } from '@/lib/services/url-analyzer';
 import type { AnalyzeUrlRequest, AnalyzeUrlResponse, VideoStyle, MusicMood } from '@/types/video-bundle';
 
 export async function POST(request: NextRequest) {
-  // Authenticate
-  const auth = await getAuthFromRequest(request);
-  if (!auth.authenticated) {
-    return NextResponse.json({ error: auth.error }, { status: 401 });
-  }
-
-  // Check subscription - free users can preview/analyze (watermarked output)
-  const quota = await subscriptionRepository.canUserGenerateVideo(auth.userId);
-  if (!quota.canGenerate && quota.plan !== 'free') {
-    return NextResponse.json(
-      { error: 'Video generation quota exceeded' },
-      { status: 403 }
-    );
-  }
-
-  // Parse request
-  let body: AnalyzeUrlRequest;
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-  }
-
-  if (!body.url || typeof body.url !== 'string') {
-    return NextResponse.json({ error: 'URL is required' }, { status: 400 });
-  }
-
-  // Validate URL format
-  let parsedUrl: URL;
-  try {
-    parsedUrl = new URL(body.url);
-    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-      throw new Error('Invalid protocol');
+    // Authenticate
+    const auth = await getAuthFromRequest(request);
+    if (!auth.authenticated) {
+      return NextResponse.json({ error: auth.error }, { status: 401 });
     }
-  } catch {
-    return NextResponse.json({ error: 'Invalid URL format. Must be http or https.' }, { status: 400 });
-  }
 
-  try {
-    // Run real URL analysis with Playwright
-    const analysis = await analyzeUrl(body.url, {
-      userId: auth.userId,
-      timeout: 30000,
-    });
+    // Check subscription - free users can preview/analyze (watermarked output)
+    const quota = await subscriptionRepository.canUserGenerateVideo(auth.userId);
+    if (!quota.canGenerate && quota.plan !== 'free') {
+      return NextResponse.json(
+        { error: 'Video generation quota exceeded' },
+        { status: 403 }
+      );
+    }
 
-    // Suggest style based on site type
-    const suggestedStyle: VideoStyle = suggestStyle(analysis.siteType);
+    // Parse request
+    let body: AnalyzeUrlRequest;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
 
-    // Suggest music mood based on content
-    const suggestedMusicMood: MusicMood = suggestMusicMood(analysis.siteType, analysis.content.features.length);
+    if (!body.url || typeof body.url !== 'string') {
+      return NextResponse.json({ error: 'URL is required' }, { status: 400 });
+    }
 
-    // Suggest duration based on content amount
-    const suggestedDuration = suggestDuration(analysis.content);
+    // Validate URL format
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(body.url);
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        throw new Error('Invalid protocol');
+      }
+    } catch {
+      return NextResponse.json({ error: 'Invalid URL format. Must be http or https.' }, { status: 400 });
+    }
 
-    const response: AnalyzeUrlResponse = {
-      analysis,
-      suggestedStyle,
-      suggestedMusicMood,
-      suggestedDuration,
-    };
+    // Check if Browserless is configured
+    if (!process.env.BROWSERLESS_API_KEY) {
+      console.warn('[/api/video/analyze] BROWSERLESS_API_KEY not configured');
+      return NextResponse.json(
+        { error: 'URL analysis not available. Browser service not configured.' },
+        { status: 503 }
+      );
+    }
 
-    return NextResponse.json(response);
-  } catch (error) {
-    console.error('[/api/video/analyze] Analysis failed:', error);
+    try {
+      // Run real URL analysis with Playwright + Browserless
+      console.log('[/api/video/analyze] Starting analysis for:', body.url);
+      const analysis = await analyzeUrl(body.url, {
+        userId: auth.userId,
+        timeout: 30000,
+      });
+      console.log('[/api/video/analyze] Analysis complete');
+
+      // Suggest style based on site type
+      const suggestedStyle: VideoStyle = suggestStyle(analysis.siteType);
+
+      // Suggest music mood based on content
+      const suggestedMusicMood: MusicMood = suggestMusicMood(analysis.siteType, analysis.content.features.length);
+
+      // Suggest duration based on content amount
+      const suggestedDuration = suggestDuration(analysis.content);
+
+      const response: AnalyzeUrlResponse = {
+        analysis,
+        suggestedStyle,
+        suggestedMusicMood,
+        suggestedDuration,
+      };
+
+      return NextResponse.json(response);
+    } catch (error) {
+      console.error('[/api/video/analyze] Analysis failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return NextResponse.json(
+        { error: `Failed to analyze URL: ${errorMessage}` },
+        { status: 500 }
+      );
+    }
+  } catch (outerError) {
+    // Catch-all for any unexpected errors
+    console.error('[/api/video/analyze] Unexpected error:', outerError);
+    const errorMessage = outerError instanceof Error ? outerError.message : 'Internal server error';
     return NextResponse.json(
-      { error: 'Failed to analyze URL. Please try again.' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
