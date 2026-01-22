@@ -1,10 +1,16 @@
 // src/remotion/compositions/PromoVideo.tsx
 
-import { AbsoluteFill, Sequence, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useVideoConfig } from 'remotion';
+import { TransitionSeries, linearTiming } from '@remotion/transitions';
+import { fade } from '@remotion/transitions/fade';
 import type { VideoScene, ColorPalette, VideoScript } from '@/types/video-bundle';
 import type { StyleConfig } from '../styles';
 import type { VideoFormat } from '../utils/safeZones';
 import { getStyleConfig } from '../styles';
+
+// Transition configuration - using Remotion Skills best practices
+const TRANSITION_DURATION_FRAMES = 15; // ~0.5s at 30fps
+const transitionTiming = linearTiming({ durationInFrames: TRANSITION_DURATION_FRAMES });
 
 // Scene components
 import { IntroScene } from '../scenes/IntroScene';
@@ -45,27 +51,43 @@ export function PromoVideo({ script, format = 'landscape', falAssets }: PromoVid
   // Calculate scene timings
   const sceneTimings = calculateSceneTimings(script.scenes, style, durationInFrames);
 
+  // Build TransitionSeries with fade transitions between scenes
+  // Per Remotion Skills: transitions overlap adjacent scenes, so total duration is shorter
   return (
     <AbsoluteFill>
-      {sceneTimings.map((timing, index) => (
-        <Sequence
-          key={index}
-          from={timing.start}
-          durationInFrames={timing.duration}
-          name={`Scene ${index + 1}: ${timing.scene.type}`}
-        >
-          <SceneRenderer
-            scene={timing.scene}
-            colors={colors}
-            style={style}
-            format={format}
-            logoUrl={script.logoUrl}
-            falAssets={falAssets}
-            isFirst={index === 0}
-            isLast={index === sceneTimings.length - 1}
-          />
-        </Sequence>
-      ))}
+      <TransitionSeries>
+        {sceneTimings.map((timing, index) => {
+          const isLast = index === sceneTimings.length - 1;
+
+          return (
+            <>
+              <TransitionSeries.Sequence
+                key={`scene-${index}`}
+                durationInFrames={timing.duration}
+              >
+                <SceneRenderer
+                  scene={timing.scene}
+                  colors={colors}
+                  style={style}
+                  format={format}
+                  logoUrl={script.logoUrl}
+                  falAssets={falAssets}
+                  isFirst={index === 0}
+                  isLast={isLast}
+                />
+              </TransitionSeries.Sequence>
+              {/* Add fade transition between scenes (not after last scene) */}
+              {!isLast && (
+                <TransitionSeries.Transition
+                  key={`transition-${index}`}
+                  presentation={fade()}
+                  timing={transitionTiming}
+                />
+              )}
+            </>
+          );
+        })}
+      </TransitionSeries>
     </AbsoluteFill>
   );
 }
@@ -97,28 +119,40 @@ function calculateSceneTimings(
     currentFrame += duration;
   }
 
+  // Per Remotion Skills: TransitionSeries transitions overlap scenes
+  // Total duration = sum of scene durations - (number of transitions * transition duration)
+  const numTransitions = Math.max(0, timings.length - 1);
+  const transitionOverlap = numTransitions * TRANSITION_DURATION_FRAMES;
+  const totalSceneDuration = timings.reduce((sum, t) => sum + t.duration, 0);
+  const effectiveDuration = totalSceneDuration - transitionOverlap;
+
   // If total exceeds video duration, scale proportionally
   // EDGE-003 FIX: Guard against division by zero
-  const totalSceneDuration = timings.reduce((sum, t) => sum + t.duration, 0);
-
-  if (totalSceneDuration > 0 && totalSceneDuration > totalDuration) {
-    const scale = totalDuration / totalSceneDuration;
+  if (effectiveDuration > 0 && effectiveDuration > totalDuration) {
+    // Need to scale down - add back transition time to get target scene durations
+    const targetSceneDuration = totalDuration + transitionOverlap;
+    const scale = targetSceneDuration / totalSceneDuration;
     let adjustedStart = 0;
 
     for (const timing of timings) {
       timing.start = Math.floor(adjustedStart);
-      timing.duration = Math.max(1, Math.floor(timing.duration * scale)); // Ensure at least 1 frame
+      timing.duration = Math.max(
+        TRANSITION_DURATION_FRAMES + 1, // Each scene must be longer than transition
+        Math.floor(timing.duration * scale)
+      );
       adjustedStart += timing.duration;
     }
   } else if (totalSceneDuration === 0 && timings.length > 0) {
     // If all scenes have 0 duration, distribute evenly
-    const perSceneDuration = Math.floor(totalDuration / timings.length);
+    // Account for transitions in the distribution
+    const availableForScenes = totalDuration + transitionOverlap;
+    const perSceneDuration = Math.floor(availableForScenes / timings.length);
     let adjustedStart = 0;
 
     for (const timing of timings) {
       timing.start = adjustedStart;
-      timing.duration = perSceneDuration;
-      adjustedStart += perSceneDuration;
+      timing.duration = Math.max(TRANSITION_DURATION_FRAMES + 1, perSceneDuration);
+      adjustedStart += timing.duration;
     }
   }
 
@@ -259,9 +293,21 @@ function EmptyState({ colors }: { colors: ColorPalette }) {
 
 /**
  * Calculate total video duration from scenes
+ * Per Remotion Skills: accounts for transition overlaps
  */
 export function calculateTotalDuration(scenes: VideoScene[], style: StyleConfig): number {
-  return scenes.reduce((total, scene) => {
+  const totalSceneDuration = scenes.reduce((total, scene) => {
     return total + (scene.duration || getDefaultDuration(scene.type, style));
   }, 0);
+
+  // Subtract transition overlaps (each transition overlaps two adjacent scenes)
+  const numTransitions = Math.max(0, scenes.length - 1);
+  const transitionOverlap = numTransitions * TRANSITION_DURATION_FRAMES;
+
+  return Math.max(1, totalSceneDuration - transitionOverlap);
 }
+
+/**
+ * Export transition duration for external use
+ */
+export { TRANSITION_DURATION_FRAMES };

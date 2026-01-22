@@ -1,7 +1,15 @@
 // src/remotion/components/AnimatedText.tsx
+// Uses Remotion Skills best practices: spring animations for natural motion
 
-import { useCurrentFrame, interpolate as remotionInterpolate, Easing } from 'remotion';
+import { useCurrentFrame, useVideoConfig, interpolate as remotionInterpolate, spring, Easing } from 'remotion';
 import type { StyleConfig } from '../styles';
+
+// Remotion Skills recommended spring configs
+const SPRING_CONFIGS = {
+  smooth: { damping: 200 }, // Smooth, no bounce (subtle reveals)
+  snappy: { damping: 20, stiffness: 200 }, // Snappy, minimal bounce (UI elements)
+  bouncy: { damping: 8 }, // Bouncy entrance (playful animations)
+};
 
 interface AnimatedTextProps {
   children: string;
@@ -27,11 +35,12 @@ export function AnimatedText({
   className,
 }: AnimatedTextProps) {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
 
   const { enterType, enterDistance, letterSpacing, lineHeight } = style.text;
   const enterDuration = style.textEnterDuration;
 
-  // Calculate enter animation progress
+  // Calculate enter animation progress using interpolate for opacity
   const progress = remotionInterpolate(
     frame,
     [delay, delay + enterDuration],
@@ -42,6 +51,14 @@ export function AnimatedText({
       easing: Easing.out(Easing.cubic),
     }
   );
+
+  // Per Remotion Skills: Use spring for position/scale animations - more natural motion
+  const springProgress = spring({
+    frame: frame - delay,
+    fps,
+    config: SPRING_CONFIGS.smooth,
+    durationInFrames: enterDuration,
+  });
 
   // Calculate opacity
   const opacity = progress;
@@ -54,17 +71,26 @@ export function AnimatedText({
       // Just fade, no movement
       break;
     case 'slide-up': {
-      const translateY = remotionInterpolate(progress, [0, 1], [enterDistance, 0]);
+      // Per Remotion Skills: Use spring for position animations
+      const translateY = remotionInterpolate(springProgress, [0, 1], [enterDistance, 0]);
       transform = `translateY(${translateY}px)`;
       break;
     }
     case 'fade-slide': {
-      const slideY = remotionInterpolate(progress, [0, 1], [enterDistance * 0.5, 0]);
+      // Per Remotion Skills: Use spring for smoother slide
+      const slideY = remotionInterpolate(springProgress, [0, 1], [enterDistance * 0.5, 0]);
       transform = `translateY(${slideY}px)`;
       break;
     }
     case 'scale-bounce': {
-      const scaleVal = remotionInterpolate(progress, [0, 1], [0.8, 1]);
+      // Per Remotion Skills: Use bouncy spring for playful scale animations
+      const bouncySpring = spring({
+        frame: frame - delay,
+        fps,
+        config: SPRING_CONFIGS.bouncy,
+        durationInFrames: enterDuration,
+      });
+      const scaleVal = remotionInterpolate(bouncySpring, [0, 1], [0.8, 1]);
       transform = `scale(${scaleVal})`;
       break;
     }

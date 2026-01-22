@@ -42,6 +42,7 @@
     "@remotion/cli": "^4.0.407",
     "@remotion/lambda": "^4.0.407",
     "@remotion/renderer": "^4.0.407",
+    "@remotion/transitions": "^4.0.407",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.49.4",
     "@tanstack/react-query": "^5.66.0",
