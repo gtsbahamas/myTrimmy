@@ -11,7 +11,16 @@ import { VIDEO_STYLES, MUSIC_MOODS } from '@/types/video-bundle';
 
 // Get the base URL for webhooks
 function getWebhookBaseUrl(): string {
-  // In production, use VERCEL_URL or a configured domain
+  // Use stable custom domain for webhooks (not VERCEL_URL which changes per deployment)
+  // This ensures webhooks can reach the endpoint even after new deployments
+  if (process.env.WEBHOOK_BASE_URL) {
+    return process.env.WEBHOOK_BASE_URL;
+  }
+  // Production: use custom domain
+  if (process.env.VERCEL_ENV === 'production') {
+    return 'https://iconym.com';
+  }
+  // Preview deployments: use VERCEL_URL
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
