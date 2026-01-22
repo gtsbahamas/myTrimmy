@@ -41,10 +41,15 @@ export interface GenerateFalAssetsParams {
   webhookUrl: string;
 }
 
+export interface FalAssetResultItem {
+  requestId: string;
+  jobId: string;
+}
+
 export interface FalAssetResult {
-  intro: { requestId: string; jobId: string };
-  background: { requestId: string; jobId: string };
-  outro: { requestId: string; jobId: string };
+  intro: FalAssetResultItem | null;
+  background: FalAssetResultItem | null;
+  outro: FalAssetResultItem | null;
 }
 
 export interface FalVideoOutput {
@@ -134,17 +139,41 @@ export async function generateFalAssets(
   console.log(`[fal-video] Starting Fal asset generation for bundle ${videoBundleId}`);
   console.log(`[fal-video] Style: ${style}, Webhook: ${webhookUrl}`);
 
-  // Submit all three jobs in parallel
-  const [introResult, backgroundResult, outroResult] = await Promise.all([
+  // Submit all three jobs in parallel with resilience (ERR-002 fix)
+  const results = await Promise.allSettled([
     submitIntroJob(videoBundleId, prompts.intro, webhookUrl),
     submitBackgroundJob(videoBundleId, prompts.background, colors, webhookUrl),
     submitOutroJob(videoBundleId, prompts.outro, webhookUrl),
   ]);
 
+  // Process results
+  const [introResult, backgroundResult, outroResult] = results;
+
+  // Log any failures with job names
+  const jobNames = ['intro', 'background', 'outro'] as const;
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.error(`[fal-video] ${jobNames[index]} job submission failed:`, result.reason);
+    }
+  });
+
+  const failedJobs = results.filter(r => r.status === 'rejected');
+
+  // If all failed, throw aggregated error
+  if (failedJobs.length === 3) {
+    throw new Error('All Fal.ai job submissions failed');
+  }
+
+  // Log partial failures but continue
+  if (failedJobs.length > 0) {
+    console.warn(`[fal-video] ${failedJobs.length}/3 job submissions failed, proceeding with partial`);
+  }
+
+  // Return results (null for failed jobs)
   return {
-    intro: introResult,
-    background: backgroundResult,
-    outro: outroResult,
+    intro: introResult.status === 'fulfilled' ? introResult.value : null,
+    background: backgroundResult.status === 'fulfilled' ? backgroundResult.value : null,
+    outro: outroResult.status === 'fulfilled' ? outroResult.value : null,
   };
 }
 
