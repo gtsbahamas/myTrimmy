@@ -11,6 +11,24 @@ import {
 import { validateFalWebhookSecret } from '@/lib/services/webhook-security';
 import type { FalJobType } from '@/types/video-bundle';
 
+// Get the base URL for internal API calls
+function getWebhookBaseUrl(): string {
+  // Use stable custom domain for webhooks (not VERCEL_URL which changes per deployment)
+  if (process.env.WEBHOOK_BASE_URL) {
+    return process.env.WEBHOOK_BASE_URL;
+  }
+  // Production: use custom domain
+  if (process.env.VERCEL_ENV === 'production') {
+    return 'https://iconym.com';
+  }
+  // Preview deployments: use VERCEL_URL
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  // Fallback for local development
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+}
+
 /**
  * Fal.ai webhook handler
  * Receives callbacks when video generation jobs complete
@@ -186,15 +204,36 @@ async function proceedToComposing(
   console.log(`[webhook/fal] Fal assets:`, falAssets);
 
   // Update bundle status to composing
-  // Note: The actual composition/rendering will be triggered by a separate process
-  // that polls for bundles in 'composing' status
   await videoBundleRepository.updateStatusServiceRole(videoBundleId, {
     status: 'composing',
   });
 
-  // Store Fal assets in the bundle for later use
-  // We'll add this to the site_analysis or a separate field
-  // For now, the jobs are tracked in the fal_jobs table and can be queried
+  // Call the compose API to trigger script generation and Lambda rendering
+  const composeUrl = `${getWebhookBaseUrl()}/api/video/compose`;
+  console.log(`[webhook/fal] Calling compose API: ${composeUrl}`);
+
+  try {
+    const response = await fetch(composeUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bundleId: videoBundleId,
+        secret: process.env.FAL_WEBHOOK_SECRET,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[webhook/fal] Compose API failed: ${response.status} - ${errorText}`);
+      // Don't throw - the status is already set to 'composing', composition can be retried
+    } else {
+      const result = await response.json();
+      console.log(`[webhook/fal] Compose API succeeded:`, result);
+    }
+  } catch (error) {
+    console.error(`[webhook/fal] Failed to call compose API:`, error);
+    // Don't throw - the status is already set to 'composing', composition can be retried
+  }
 }
 
 /**

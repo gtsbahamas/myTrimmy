@@ -37,6 +37,9 @@ export type FalJobType = typeof FAL_JOB_TYPES[number];
 export const FAL_JOB_STATUSES = ['pending', 'processing', 'completed', 'failed'] as const;
 export type FalJobStatus = typeof FAL_JOB_STATUSES[number];
 
+export const RENDER_JOB_STATUSES = ['pending', 'rendering', 'completed', 'failed'] as const;
+export type RenderJobStatus = typeof RENDER_JOB_STATUSES[number];
+
 export const VIDEO_FORMATS = ['landscape', 'portrait', 'square'] as const;
 export type VideoFormat = typeof VIDEO_FORMATS[number];
 
@@ -194,6 +197,8 @@ export interface VideoBundleRow {
   completed_at: string | null;
   error_message: string | null;
   error_details: Record<string, unknown> | null;
+  video_script: VideoScript | null;
+  fal_assets: FalAssets | null;
 }
 
 export interface SubscriptionRow {
@@ -227,6 +232,29 @@ export interface FalJobRow {
   job_type: FalJobType;
   status: FalJobStatus;
   output_url: string | null;
+  error_message: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+// Fal assets structure (stored in video_bundles.fal_assets)
+export interface FalAssets {
+  intro: string | null;
+  background: string | null;
+  outro: string | null;
+}
+
+// Render job row (matches render_jobs table)
+export interface RenderJobRow {
+  id: string;
+  video_bundle_id: string;
+  render_id: string;
+  bucket_name: string;
+  format: VideoFormat;
+  status: RenderJobStatus;
+  progress: number;
+  output_url: string | null;
+  thumbnail_url: string | null;
   error_message: string | null;
   created_at: string;
   completed_at: string | null;

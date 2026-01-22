@@ -16,50 +16,42 @@ export type Database = {
     Tables: {
       api_keys: {
         Row: {
+          created_at: string
           id: string
-          user_id: string
-          name: string
+          key_hash: string
           key_prefix: string
           key_suffix: string
-          key_hash: string
-          permissions: Json
-          created_at: string
           last_used_at: string | null
+          name: string
+          permissions: Json
           revoked_at: string | null
+          user_id: string
         }
         Insert: {
+          created_at?: string
           id?: string
-          user_id: string
-          name: string
+          key_hash: string
           key_prefix: string
           key_suffix: string
-          key_hash: string
-          permissions?: Json
-          created_at?: string
           last_used_at?: string | null
+          name: string
+          permissions?: Json
           revoked_at?: string | null
+          user_id: string
         }
         Update: {
+          created_at?: string
           id?: string
-          user_id?: string
-          name?: string
+          key_hash?: string
           key_prefix?: string
           key_suffix?: string
-          key_hash?: string
-          permissions?: Json
-          created_at?: string
           last_used_at?: string | null
+          name?: string
+          permissions?: Json
           revoked_at?: string | null
+          user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "api_keys_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       batch_images: {
         Row: {
@@ -169,8 +161,151 @@ export type Database = {
           },
         ]
       }
+      edit_operations: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          id: string
+          operation_type: string
+          params: Json
+          position: number
+          post_snapshot_url: string | null
+          pre_snapshot_url: string | null
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          operation_type: string
+          params?: Json
+          position: number
+          post_snapshot_url?: string | null
+          pre_snapshot_url?: string | null
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          operation_type?: string
+          params?: Json
+          position?: number
+          post_snapshot_url?: string | null
+          pre_snapshot_url?: string | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edit_operations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "edit_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      edit_sessions: {
+        Row: {
+          created_at: string
+          current_position: number
+          current_snapshot_url: string | null
+          id: string
+          image_id: string
+          saved_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          current_position?: number
+          current_snapshot_url?: string | null
+          id?: string
+          image_id: string
+          saved_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          current_position?: number
+          current_snapshot_url?: string | null
+          id?: string
+          image_id?: string
+          saved_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edit_sessions_image_id_fkey"
+            columns: ["image_id"]
+            isOneToOne: false
+            referencedRelation: "images"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edit_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fal_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          fal_request_id: string
+          id: string
+          job_type: string
+          output_url: string | null
+          status: string
+          video_bundle_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          fal_request_id: string
+          id?: string
+          job_type: string
+          output_url?: string | null
+          status?: string
+          video_bundle_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          fal_request_id?: string
+          id?: string
+          job_type?: string
+          output_url?: string | null
+          status?: string
+          video_bundle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fal_jobs_video_bundle_id_fkey"
+            columns: ["video_bundle_id"]
+            isOneToOne: false
+            referencedRelation: "video_bundles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       images: {
         Row: {
+          active_edit_session_id: string | null
           created_at: string
           file_size: number | null
           filename: string
@@ -183,9 +318,9 @@ export type Database = {
           updated_at: string
           user_id: string
           width: number | null
-          active_edit_session_id: string | null
         }
         Insert: {
+          active_edit_session_id?: string | null
           created_at?: string
           file_size?: number | null
           filename: string
@@ -198,9 +333,9 @@ export type Database = {
           updated_at?: string
           user_id: string
           width?: number | null
-          active_edit_session_id?: string | null
         }
         Update: {
+          active_edit_session_id?: string | null
           created_at?: string
           file_size?: number | null
           filename?: string
@@ -213,21 +348,20 @@ export type Database = {
           updated_at?: string
           user_id?: string
           width?: number | null
-          active_edit_session_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "images_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "images_active_edit_session_id_fkey"
             columns: ["active_edit_session_id"]
             isOneToOne: false
             referencedRelation: "edit_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "images_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -348,304 +482,198 @@ export type Database = {
         }
         Relationships: []
       }
-      edit_sessions: {
+      render_jobs: {
         Row: {
-          id: string
-          image_id: string
-          user_id: string
-          current_position: number
-          current_snapshot_url: string | null
-          status: string
-          created_at: string
-          updated_at: string
-          saved_at: string | null
-          version: number
-        }
-        Insert: {
-          id?: string
-          image_id: string
-          user_id: string
-          current_position?: number
-          current_snapshot_url?: string | null
-          status?: string
-          created_at?: string
-          updated_at?: string
-          saved_at?: string | null
-          version?: number
-        }
-        Update: {
-          id?: string
-          image_id?: string
-          user_id?: string
-          current_position?: number
-          current_snapshot_url?: string | null
-          status?: string
-          created_at?: string
-          updated_at?: string
-          saved_at?: string | null
-          version?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "edit_sessions_image_id_fkey"
-            columns: ["image_id"]
-            isOneToOne: false
-            referencedRelation: "images"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "edit_sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      edit_operations: {
-        Row: {
-          id: string
-          session_id: string
-          position: number
-          operation_type: string
-          params: Json
-          pre_snapshot_url: string | null
-          post_snapshot_url: string | null
-          created_at: string
-          duration_ms: number | null
-        }
-        Insert: {
-          id?: string
-          session_id: string
-          position: number
-          operation_type: string
-          params?: Json
-          pre_snapshot_url?: string | null
-          post_snapshot_url?: string | null
-          created_at?: string
-          duration_ms?: number | null
-        }
-        Update: {
-          id?: string
-          session_id?: string
-          position?: number
-          operation_type?: string
-          params?: Json
-          pre_snapshot_url?: string | null
-          post_snapshot_url?: string | null
-          created_at?: string
-          duration_ms?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "edit_operations_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "edit_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      video_bundles: {
-        Row: {
-          id: string
-          user_id: string
-          source_url: string
-          site_analysis: Json
-          style: string
-          music_mood: string
-          duration_seconds: number
-          status: string
-          validation_result: Json | null
-          gemini_review: Json | null
-          outputs: Json | null
-          edit_count: number
-          last_edited_at: string | null
-          created_at: string
+          bucket_name: string
           completed_at: string | null
+          created_at: string
           error_message: string | null
-          error_details: Json | null
+          format: string
+          id: string
+          output_url: string | null
+          progress: number | null
+          render_id: string
+          status: string
+          thumbnail_url: string | null
+          video_bundle_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          source_url: string
-          site_analysis: Json
-          style: string
-          music_mood: string
-          duration_seconds: number
-          status?: string
-          validation_result?: Json | null
-          gemini_review?: Json | null
-          outputs?: Json | null
-          edit_count?: number
-          last_edited_at?: string | null
-          created_at?: string
+          bucket_name: string
           completed_at?: string | null
+          created_at?: string
           error_message?: string | null
-          error_details?: Json | null
+          format: string
+          id?: string
+          output_url?: string | null
+          progress?: number | null
+          render_id: string
+          status?: string
+          thumbnail_url?: string | null
+          video_bundle_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          source_url?: string
-          site_analysis?: Json
-          style?: string
-          music_mood?: string
-          duration_seconds?: number
-          status?: string
-          validation_result?: Json | null
-          gemini_review?: Json | null
-          outputs?: Json | null
-          edit_count?: number
-          last_edited_at?: string | null
-          created_at?: string
+          bucket_name?: string
           completed_at?: string | null
+          created_at?: string
           error_message?: string | null
-          error_details?: Json | null
+          format?: string
+          id?: string
+          output_url?: string | null
+          progress?: number | null
+          render_id?: string
+          status?: string
+          thumbnail_url?: string | null
+          video_bundle_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "video_bundles_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "render_jobs_video_bundle_id_fkey"
+            columns: ["video_bundle_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "video_bundles"
             referencedColumns: ["id"]
           },
         ]
       }
       subscriptions: {
         Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
           id: string
-          user_id: string
           plan: string
+          status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
-          current_period_start: string | null
-          current_period_end: string | null
-          video_bundles_used: number
-          video_bundles_limit: number | null
-          status: string
-          created_at: string
           updated_at: string
+          user_id: string
+          video_bundles_limit: number | null
+          video_bundles_used: number
         }
         Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
           id?: string
-          user_id: string
           plan: string
+          status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
-          current_period_start?: string | null
-          current_period_end?: string | null
-          video_bundles_used?: number
-          video_bundles_limit?: number | null
-          status?: string
-          created_at?: string
           updated_at?: string
+          user_id: string
+          video_bundles_limit?: number | null
+          video_bundles_used?: number
         }
         Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
           id?: string
-          user_id?: string
           plan?: string
+          status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
-          current_period_start?: string | null
-          current_period_end?: string | null
-          video_bundles_used?: number
-          video_bundles_limit?: number | null
-          status?: string
-          created_at?: string
           updated_at?: string
+          user_id?: string
+          video_bundles_limit?: number | null
+          video_bundles_used?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "subscriptions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      video_bundles: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          duration_seconds: number
+          edit_count: number
+          error_details: Json | null
+          error_message: string | null
+          fal_assets: Json | null
+          gemini_review: Json | null
+          id: string
+          last_edited_at: string | null
+          music_mood: string
+          outputs: Json | null
+          site_analysis: Json
+          source_url: string
+          status: string
+          style: string
+          user_id: string
+          validation_result: Json | null
+          video_script: Json | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds: number
+          edit_count?: number
+          error_details?: Json | null
+          error_message?: string | null
+          fal_assets?: Json | null
+          gemini_review?: Json | null
+          id?: string
+          last_edited_at?: string | null
+          music_mood: string
+          outputs?: Json | null
+          site_analysis: Json
+          source_url: string
+          status?: string
+          style: string
+          user_id: string
+          validation_result?: Json | null
+          video_script?: Json | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds?: number
+          edit_count?: number
+          error_details?: Json | null
+          error_message?: string | null
+          fal_assets?: Json | null
+          gemini_review?: Json | null
+          id?: string
+          last_edited_at?: string | null
+          music_mood?: string
+          outputs?: Json | null
+          site_analysis?: Json
+          source_url?: string
+          status?: string
+          style?: string
+          user_id?: string
+          validation_result?: Json | null
+          video_script?: Json | null
+        }
+        Relationships: []
       }
       video_edits: {
         Row: {
-          id: string
-          video_bundle_id: string
-          edit_type: string
-          changes: Json
           applied_at: string
           applied_by: string
+          changes: Json
+          edit_type: string
+          id: string
+          video_bundle_id: string
         }
         Insert: {
-          id?: string
-          video_bundle_id: string
-          edit_type: string
-          changes: Json
           applied_at?: string
           applied_by: string
+          changes: Json
+          edit_type: string
+          id?: string
+          video_bundle_id: string
         }
         Update: {
-          id?: string
-          video_bundle_id?: string
-          edit_type?: string
-          changes?: Json
           applied_at?: string
           applied_by?: string
+          changes?: Json
+          edit_type?: string
+          id?: string
+          video_bundle_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "video_edits_video_bundle_id_fkey"
-            columns: ["video_bundle_id"]
-            isOneToOne: false
-            referencedRelation: "video_bundles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "video_edits_applied_by_fkey"
-            columns: ["applied_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      fal_jobs: {
-        Row: {
-          id: string
-          video_bundle_id: string
-          fal_request_id: string
-          job_type: string
-          status: string
-          output_url: string | null
-          error_message: string | null
-          created_at: string
-          completed_at: string | null
-        }
-        Insert: {
-          id?: string
-          video_bundle_id: string
-          fal_request_id: string
-          job_type: string
-          status?: string
-          output_url?: string | null
-          error_message?: string | null
-          created_at?: string
-          completed_at?: string | null
-        }
-        Update: {
-          id?: string
-          video_bundle_id?: string
-          fal_request_id?: string
-          job_type?: string
-          status?: string
-          output_url?: string | null
-          error_message?: string | null
-          created_at?: string
-          completed_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fal_jobs_video_bundle_id_fkey"
             columns: ["video_bundle_id"]
             isOneToOne: false
             referencedRelation: "video_bundles"
@@ -658,8 +686,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_stale_edit_sessions: { Args: never; Returns: number }
       current_user_profile: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           avatar_url: string | null
           created_at: string
@@ -671,6 +700,12 @@ export type Database = {
           replicate_api_key: string | null
           stripe_customer_id: string | null
           updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
         }
       }
     }
@@ -685,7 +720,7 @@ export type Database = {
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof DatabaseWithoutInternals, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
@@ -799,3 +834,9 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

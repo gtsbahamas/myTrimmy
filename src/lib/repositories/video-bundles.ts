@@ -11,6 +11,8 @@ import type {
   VideoOutputs,
   ValidationResult,
   GeminiReview,
+  VideoScript,
+  FalAssets,
 } from '@/types/video-bundle';
 
 export interface CreateVideoBundleParams {
@@ -30,6 +32,8 @@ export interface UpdateVideoBundleParams {
   completedAt?: string;
   errorMessage?: string;
   errorDetails?: Record<string, unknown>;
+  videoScript?: VideoScript;
+  falAssets?: FalAssets;
 }
 
 export class VideoBundleRepository {
@@ -101,6 +105,27 @@ export class VideoBundleRepository {
   }
 
   /**
+   * Get a video bundle by ID (service role - bypasses RLS)
+   * Use this for background job processing
+   */
+  async getByIdServiceRole(id: string): Promise<VideoBundleRow | null> {
+    const supabase = createServiceRoleClient();
+
+    const { data, error } = await supabase
+      .from('video_bundles')
+      .select()
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found
+      throw new Error(`Failed to get video bundle: ${error.message}`);
+    }
+
+    return data as unknown as VideoBundleRow;
+  }
+
+  /**
    * Get the user_id for a video bundle (service role)
    * Used for ownership validation in related tables
    */
@@ -136,6 +161,8 @@ export class VideoBundleRepository {
     if (params.completedAt !== undefined) updateData.completed_at = params.completedAt;
     if (params.errorMessage !== undefined) updateData.error_message = params.errorMessage;
     if (params.errorDetails !== undefined) updateData.error_details = params.errorDetails;
+    if (params.videoScript !== undefined) updateData.video_script = params.videoScript;
+    if (params.falAssets !== undefined) updateData.fal_assets = params.falAssets;
 
     const { data, error } = await supabase
       .from('video_bundles')
@@ -167,6 +194,8 @@ export class VideoBundleRepository {
     if (params.completedAt !== undefined) updateData.completed_at = params.completedAt;
     if (params.errorMessage !== undefined) updateData.error_message = params.errorMessage;
     if (params.errorDetails !== undefined) updateData.error_details = params.errorDetails;
+    if (params.videoScript !== undefined) updateData.video_script = params.videoScript;
+    if (params.falAssets !== undefined) updateData.fal_assets = params.falAssets;
 
     const { error } = await supabase
       .from('video_bundles')
