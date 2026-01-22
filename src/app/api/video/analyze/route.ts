@@ -1,6 +1,9 @@
 // src/app/api/video/analyze/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
+
+// Allow longer execution time for URL analysis with Browserless
+export const maxDuration = 60; // seconds (requires Vercel Pro for >10s)
 import { getAuthFromRequest } from '@/lib/supabase/server';
 import { subscriptionRepository } from '@/lib/repositories/subscriptions';
 import { analyzeUrl } from '@/lib/services/url-analyzer';
