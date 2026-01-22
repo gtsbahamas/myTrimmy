@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { Check, Loader2, Circle, RefreshCw, AlertCircle, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -174,13 +175,13 @@ export function GenerationProgress({
 
           {errorInfo.type === 'fatal' && (
             <div className="mt-4 pt-4 border-t border-border/50">
-              <a
+              <Link
                 href="/settings"
                 className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
               >
                 <HelpCircle className="w-4 h-4" />
                 View your plan and usage
-              </a>
+              </Link>
             </div>
           )}
         </div>

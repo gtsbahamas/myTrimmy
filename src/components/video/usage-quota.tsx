@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { Sparkles, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -82,12 +83,12 @@ export function UsageQuota({ used, limit, plan, className }: UsageQuotaProps) {
       </div>
 
       {isExhausted && (
-        <a
+        <Link
           href="/settings"
           className="text-xs font-medium text-primary hover:underline whitespace-nowrap"
         >
           Upgrade
-        </a>
+        </Link>
       )}
     </div>
   );
