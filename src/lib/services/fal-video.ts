@@ -13,6 +13,22 @@ fal.config({
   credentials: process.env.FAL_KEY,
 });
 
+// Webhook secret for authenticating callbacks
+const FAL_WEBHOOK_SECRET = process.env.FAL_WEBHOOK_SECRET;
+
+/**
+ * Build webhook URL with secret parameter for authentication
+ * The secret is validated by the webhook handler to prevent unauthorized calls
+ */
+function buildWebhookUrl(baseUrl: string, type: FalJobType): string {
+  const url = new URL(baseUrl);
+  url.searchParams.set('type', type);
+  if (FAL_WEBHOOK_SECRET) {
+    url.searchParams.set('secret', FAL_WEBHOOK_SECRET);
+  }
+  return url.toString();
+}
+
 // ============================================
 // Types
 // ============================================
@@ -150,7 +166,7 @@ async function submitIntroJob(
       negative_prompt: 'text, words, letters, faces, people, blurry, distorted, low quality',
       cfg_scale: 0.6,
     },
-    webhookUrl: `${webhookUrl}?type=intro`,
+    webhookUrl: buildWebhookUrl(webhookUrl, 'intro'),
   });
 
   // Create tracking record in database
@@ -186,7 +202,7 @@ async function submitBackgroundJob(
       negative_prompt: 'text, words, letters, faces, people, blurry, distorted, low quality, sudden movements',
       cfg_scale: 0.5,
     },
-    webhookUrl: `${webhookUrl}?type=background`,
+    webhookUrl: buildWebhookUrl(webhookUrl, 'background'),
   });
 
   // Create tracking record in database
@@ -215,7 +231,7 @@ async function submitOutroJob(
       prompt,
       aspect_ratio: '16:9',
     },
-    webhookUrl: `${webhookUrl}?type=outro`,
+    webhookUrl: buildWebhookUrl(webhookUrl, 'outro'),
   });
 
   // Create tracking record in database

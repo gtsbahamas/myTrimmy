@@ -8,18 +8,30 @@ import {
   getJobResult,
   getModelForJobType,
 } from '@/lib/services/fal-video';
+import { validateFalWebhookSecret } from '@/lib/services/webhook-security';
 import type { FalJobType } from '@/types/video-bundle';
 
 /**
  * Fal.ai webhook handler
  * Receives callbacks when video generation jobs complete
  *
- * Expected URL format: /api/webhooks/fal?type=intro|background|outro
+ * Expected URL format: /api/webhooks/fal?type=intro|background|outro&secret=XXX
  */
 export async function POST(request: NextRequest) {
   const jobType = request.nextUrl.searchParams.get('type') as FalJobType | null;
+  const secret = request.nextUrl.searchParams.get('secret');
 
   console.log(`[webhook/fal] Received webhook callback, type=${jobType}`);
+
+  // Validate webhook secret (SEC-001 fix)
+  const validation = validateFalWebhookSecret(secret);
+  if (!validation.valid) {
+    console.error(`[webhook/fal] Secret validation failed: ${validation.error}`);
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
 
   // Parse webhook payload
   let body: unknown;
