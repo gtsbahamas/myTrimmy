@@ -100,6 +100,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Determine initial status - skip 'analyzing' if we have pre-analyzed data
+    const initialStatus = body.siteAnalysis ? 'composing' : 'analyzing';
+
     // Create video bundle record with real analysis
     const bundle = await videoBundleRepository.create({
       userId: auth.userId,
@@ -113,9 +116,9 @@ export async function POST(request: NextRequest) {
     // Increment usage count
     await subscriptionRepository.incrementVideoBundlesUsed(auth.userId);
 
-    // Update status to 'analyzing' (first step of the pipeline)
+    // Update status based on whether we skipped analysis
     await videoBundleRepository.update(bundle.id, {
-      status: 'analyzing',
+      status: initialStatus,
     });
 
     // Trigger Fal.ai video generation (async with webhooks)
@@ -139,7 +142,7 @@ export async function POST(request: NextRequest) {
 
     const response: GenerateVideoResponse = {
       bundleId: bundle.id,
-      status: 'analyzing',
+      status: initialStatus,
     };
 
     return NextResponse.json(response, { status: 201 });
