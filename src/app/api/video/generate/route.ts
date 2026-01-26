@@ -125,6 +125,7 @@ export async function POST(request: NextRequest) {
     const webhookUrl = `${getWebhookBaseUrl()}/api/webhooks/fal`;
     console.log(`[/api/video/generate] Triggering Fal.ai generation with webhook: ${webhookUrl}`);
 
+    let falJobsCreated = false;
     try {
       await generateFalAssets({
         videoBundleId: bundle.id,
@@ -134,10 +135,29 @@ export async function POST(request: NextRequest) {
         webhookUrl,
       });
       console.log(`[/api/video/generate] Fal.ai jobs submitted for bundle ${bundle.id}`);
+      falJobsCreated = true;
     } catch (falError) {
       // Log but don't fail the request - fallback rendering is possible
       console.error('[/api/video/generate] Fal.ai submission failed:', falError);
-      // Continue with the flow - Remotion can render without AI assets
+    }
+
+    // If Fal.ai failed, trigger compose immediately (no webhooks will fire)
+    if (!falJobsCreated) {
+      console.log(`[/api/video/generate] Fal.ai failed, triggering compose directly for bundle ${bundle.id}`);
+      const composeUrl = `${getWebhookBaseUrl()}/api/video/compose`;
+      try {
+        // Fire and forget - don't block the response
+        fetch(composeUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bundleId: bundle.id,
+            secret: process.env.FAL_WEBHOOK_SECRET,
+          }),
+        }).catch(err => console.error('[/api/video/generate] Failed to trigger compose:', err));
+      } catch (composeError) {
+        console.error('[/api/video/generate] Failed to trigger compose:', composeError);
+      }
     }
 
     const response: GenerateVideoResponse = {
