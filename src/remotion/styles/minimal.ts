@@ -2,6 +2,7 @@
 
 import { easeOutCubic, easeInCubic, easeInOutCubic } from '../utils/easing';
 import { secondsToFrames } from '../utils/timing';
+import { SCENE_DURATIONS } from '../skill-config';
 
 /**
  * Minimal style configuration
@@ -21,14 +22,13 @@ export const minimalStyle = {
   exitEasing: easeInCubic,
   moveEasing: easeInOutCubic,
 
-  // Scene defaults (in frames)
-  // Per Promo Video Mastery skill: optimized for 60-90 second explainers
+  // Scene defaults (in frames) - from Promo Video Mastery skill config
   sceneDefaults: {
-    intro: secondsToFrames(4),      // Hook quickly, logo + headline
-    feature: secondsToFrames(5),    // Enough time to read benefit
-    stats: secondsToFrames(4.5),    // Counter animation + absorption
-    screenshot: secondsToFrames(6), // Allow product to breathe
-    cta: secondsToFrames(5),        // Clear call to action
+    intro: SCENE_DURATIONS.intro.ideal,
+    feature: SCENE_DURATIONS.feature.ideal,
+    stats: SCENE_DURATIONS.stats.ideal,
+    screenshot: SCENE_DURATIONS.screenshot.ideal,
+    cta: SCENE_DURATIONS.cta.ideal,
   },
 
   // Text animation

@@ -9,19 +9,22 @@ import type { StyleConfig } from '../styles';
 import type { VideoFormat } from '../utils/safeZones';
 import { getStyleConfig } from '../styles';
 
-// Transition configuration - using Promo Video Mastery skill best practices
-// Spring-based transitions feel more natural and professional
-const TRANSITION_DURATION_FRAMES = 15; // ~0.5s at 30fps
+// Import skill configuration - enforced best practices from Promo Video Mastery skill
+import {
+  SPRING_CONFIGS,
+  ANIMATION_TIMING,
+  TRANSITION_REST_THRESHOLD,
+} from '../skill-config';
 
-// Spring config for smooth, professional transitions (Stripe/Linear style)
-const SMOOTH_SPRING_CONFIG = { damping: 200 };
+// Transition configuration - using Promo Video Mastery skill constants
+const TRANSITION_DURATION_FRAMES = ANIMATION_TIMING.transition.default;
 
-// Create spring timing with recommended durationRestThreshold for cleaner cutoffs
+// Create spring timing with skill-defined config
 const createSpringTransition = () =>
   springTiming({
-    config: SMOOTH_SPRING_CONFIG,
+    config: SPRING_CONFIGS.smooth, // Professional, Stripe/Linear style
     durationInFrames: TRANSITION_DURATION_FRAMES,
-    durationRestThreshold: 0.001, // Smoother cutoff per Remotion best practices
+    durationRestThreshold: TRANSITION_REST_THRESHOLD, // 0.001 for cleaner cutoffs
   });
 
 // Scene components

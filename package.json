@@ -16,7 +16,8 @@
     "verify:deploy": "npx tsx scripts/verify-deploy.ts",
     "remotion:studio": "remotion studio",
     "remotion:render": "remotion render",
-    "remotion:lambda": "remotion lambda"
+    "remotion:lambda": "remotion lambda",
+    "remotion:validate": "npx tsx scripts/validate-video-script.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
