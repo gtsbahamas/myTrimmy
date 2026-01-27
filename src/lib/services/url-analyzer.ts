@@ -11,6 +11,7 @@
 // 3. Ensure the 'video-bundles' storage bucket exists in Supabase with public access
 
 import { chromium, type Browser, type Page } from 'playwright-core';
+import Anthropic from '@anthropic-ai/sdk';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { validateUrlForSSRF } from './url-validator';
 import type {
@@ -19,6 +20,24 @@ import type {
   SiteContent,
   SiteScreenshots,
 } from '@/types/video-bundle';
+
+// ============================================
+// Anthropic Client (lazy-initialized for AI content extraction)
+// ============================================
+
+let anthropicClient: Anthropic | null = null;
+
+function getAnthropicClient(): Anthropic | null {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return null;
+  }
+  if (!anthropicClient) {
+    anthropicClient = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+  }
+  return anthropicClient;
+}
 
 // ============================================
 // Types
@@ -307,6 +326,133 @@ async function extractContent(page: Page): Promise<ExtractionResult<SiteContent>
 }
 
 // ============================================
+// AI-Powered Content Extraction
+// ============================================
+
+const CONTENT_EXTRACTION_PROMPT = `Analyze this website screenshot and extract content for a 30-second promotional video.
+
+Return ONLY valid JSON (no markdown fencing, no explanation):
+{
+  "headline": "Main value proposition - punchy, under 10 words",
+  "subheadline": "Supporting tagline, one sentence, or null if none visible",
+  "features": ["Feature 1 - short benefit phrase", "Feature 2", "Feature 3"],
+  "stats": ["10K+ users", "99.9% uptime", "4.9 rating"],
+  "cta": "Call-to-action button text"
+}
+
+Rules:
+1. Extract the MARKETING message, not UI labels or navigation text
+2. Features should be benefits/value props (3-5 items max)
+3. Stats should be impressive metrics WITH their labels (e.g., "10K+ users" not just "10K+")
+4. If no clear stats are visible, return empty array []
+5. Be compelling and concise - this is for a video ad
+6. Headline should capture the core value proposition, not just the company name`;
+
+async function extractContentWithAI(
+  screenshotBase64: string,
+  url: string
+): Promise<ExtractionResult<SiteContent>> {
+  // Get lazy-initialized client
+  const anthropic = getAnthropicClient();
+  if (!anthropic) {
+    log('warn', 'ANTHROPIC_API_KEY not set, skipping AI extraction');
+    return { success: false, data: null, error: 'API key not configured' };
+  }
+
+  try {
+    log('info', 'Extracting content with AI', { url });
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: 'image/png',
+                data: screenshotBase64,
+              },
+            },
+            {
+              type: 'text',
+              text: CONTENT_EXTRACTION_PROMPT,
+            },
+          ],
+        },
+      ],
+    });
+
+    // Extract text content from response
+    const textContent = response.content.find((block) => block.type === 'text');
+    if (!textContent || textContent.type !== 'text') {
+      throw new Error('No text content in Claude response');
+    }
+
+    const rawResponse = textContent.text;
+    log('info', 'AI extraction raw response', { preview: rawResponse.substring(0, 200) });
+
+    // Parse JSON response (handle potential markdown fencing)
+    let parsed: {
+      headline?: string;
+      subheadline?: string | null;
+      features?: string[];
+      stats?: string[];
+      cta?: string;
+    };
+
+    try {
+      // Try to extract JSON from the response (in case it includes markdown)
+      const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No JSON object found in response');
+      }
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch (parseError) {
+      log('error', 'Failed to parse AI response JSON', { error: String(parseError), raw: rawResponse });
+      return { success: false, data: null, error: 'Failed to parse AI response' };
+    }
+
+    // Validate and transform to SiteContent
+    const content: SiteContent = {
+      headline: parsed.headline || 'Welcome',
+      subheadline: parsed.subheadline || null,
+      features: Array.isArray(parsed.features) ? parsed.features.slice(0, 5) : [],
+      stats: Array.isArray(parsed.stats) ? parsed.stats.slice(0, 4) : [],
+      cta: parsed.cta || 'Get Started',
+    };
+
+    log('info', 'AI content extraction successful', {
+      headline: content.headline,
+      featureCount: content.features.length,
+      statCount: content.stats.length,
+    });
+
+    return { success: true, data: content };
+  } catch (error) {
+    // SDK already retried 429/5xx - if we're here, it's a real failure
+    if (error instanceof Anthropic.RateLimitError) {
+      log('warn', 'Rate limit exceeded after retries', { error: error.message });
+    } else if (error instanceof Anthropic.BadRequestError) {
+      log('warn', 'Bad request - possibly image too large', { error: error.message });
+    } else if (error instanceof Anthropic.APIError) {
+      log('warn', 'Anthropic API error', { status: error.status, message: error.message });
+    } else {
+      log('error', 'AI content extraction failed', { error: String(error) });
+    }
+
+    return {
+      success: false,
+      data: null,
+      error: error instanceof Error ? error.message : 'AI extraction failed',
+    };
+  }
+}
+
+// ============================================
 // Logo Extraction
 // ============================================
 
@@ -574,15 +720,32 @@ export async function analyzeUrl(
     // Wait a bit for any lazy-loaded content
     await page.waitForTimeout(1000);
 
-    // Run all extractions in parallel where possible
-    log('info', 'Extracting page data');
-    const [colorsResult, contentResult, logoResult, siteType, screenshotsResult] = await Promise.all([
+    // Capture viewport screenshot first (needed for AI content extraction)
+    log('info', 'Capturing viewport screenshot for AI analysis');
+    const viewportScreenshot = await page.screenshot({
+      type: 'png',
+      fullPage: false, // Viewport only - keeps image size reasonable for AI
+    });
+    const viewportBase64 = viewportScreenshot.toString('base64');
+
+    // Run CSS extractions in parallel (colors, logo, site type, screenshots)
+    log('info', 'Extracting page data (CSS + AI hybrid)');
+    const [colorsResult, logoResult, siteType, screenshotsResult] = await Promise.all([
       extractColors(page),
-      extractContent(page),
       extractLogoUrl(page),
       detectSiteType(page, url),
       captureAndUploadScreenshots(page, userId, bundleId),
     ]);
+
+    // AI content extraction (primary) with CSS fallback
+    log('info', 'Attempting AI content extraction');
+    let contentResult = await extractContentWithAI(viewportBase64, url);
+
+    // Fall back to CSS extraction if AI fails
+    if (!contentResult.success || !contentResult.data) {
+      log('info', 'AI extraction failed, falling back to CSS extraction');
+      contentResult = await extractContent(page);
+    }
 
     // Log any partial failures
     if (!colorsResult.success) {

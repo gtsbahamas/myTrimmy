@@ -28,10 +28,12 @@ export interface UpdateSubscriptionParams {
 
 export class SubscriptionRepository {
   /**
-   * Get subscription for a user
+   * Get subscription for a user (uses service role to bypass RLS for API key auth)
    */
   async getByUserId(userId: string): Promise<SubscriptionRow | null> {
-    const supabase = await createClient();
+    // Use service role client to bypass RLS - needed for API key auth scenarios
+    // where there's no session-based auth context
+    const supabase = createServiceRoleClient();
 
     const { data, error } = await supabase
       .from('subscriptions')
