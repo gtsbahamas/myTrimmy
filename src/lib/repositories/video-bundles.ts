@@ -39,9 +39,10 @@ export interface UpdateVideoBundleParams {
 export class VideoBundleRepository {
   /**
    * Create a new video bundle
+   * Uses service role to bypass RLS - needed for API key auth scenarios
    */
   async create(params: CreateVideoBundleParams): Promise<VideoBundleRow> {
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     const { data, error } = await supabase
       .from('video_bundles')
@@ -65,10 +66,11 @@ export class VideoBundleRepository {
   }
 
   /**
-   * Get a video bundle by ID (user-scoped via RLS)
+   * Get a video bundle by ID
+   * Uses service role to bypass RLS - needed for API key auth scenarios
    */
   async getById(id: string): Promise<VideoBundleRow | null> {
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     const { data, error } = await supabase
       .from('video_bundles')
@@ -86,9 +88,10 @@ export class VideoBundleRepository {
 
   /**
    * Get all video bundles for a user
+   * Uses service role to bypass RLS - needed for API key auth scenarios
    */
   async getByUserId(userId: string, limit = 50): Promise<VideoBundleRow[]> {
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     const { data, error } = await supabase
       .from('video_bundles')
@@ -150,7 +153,7 @@ export class VideoBundleRepository {
    * Update a video bundle (user-scoped via RLS)
    */
   async update(id: string, params: UpdateVideoBundleParams): Promise<VideoBundleRow> {
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     const updateData: Record<string, unknown> = {};
 
