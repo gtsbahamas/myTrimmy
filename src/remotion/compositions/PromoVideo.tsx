@@ -1,16 +1,28 @@
 // src/remotion/compositions/PromoVideo.tsx
 
 import { AbsoluteFill, useVideoConfig } from 'remotion';
-import { TransitionSeries, linearTiming } from '@remotion/transitions';
+import { TransitionSeries, springTiming } from '@remotion/transitions';
 import { fade } from '@remotion/transitions/fade';
+import { slide } from '@remotion/transitions/slide';
 import type { VideoScene, ColorPalette, VideoScript } from '@/types/video-bundle';
 import type { StyleConfig } from '../styles';
 import type { VideoFormat } from '../utils/safeZones';
 import { getStyleConfig } from '../styles';
 
-// Transition configuration - using Remotion Skills best practices
+// Transition configuration - using Promo Video Mastery skill best practices
+// Spring-based transitions feel more natural and professional
 const TRANSITION_DURATION_FRAMES = 15; // ~0.5s at 30fps
-const transitionTiming = linearTiming({ durationInFrames: TRANSITION_DURATION_FRAMES });
+
+// Spring config for smooth, professional transitions (Stripe/Linear style)
+const SMOOTH_SPRING_CONFIG = { damping: 200 };
+
+// Create spring timing with recommended durationRestThreshold for cleaner cutoffs
+const createSpringTransition = () =>
+  springTiming({
+    config: SMOOTH_SPRING_CONFIG,
+    durationInFrames: TRANSITION_DURATION_FRAMES,
+    durationRestThreshold: 0.001, // Smoother cutoff per Remotion best practices
+  });
 
 // Scene components
 import { IntroScene } from '../scenes/IntroScene';
@@ -51,13 +63,14 @@ export function PromoVideo({ script, format = 'landscape', falAssets }: PromoVid
   // Calculate scene timings
   const sceneTimings = calculateSceneTimings(script.scenes, style, durationInFrames);
 
-  // Build TransitionSeries with fade transitions between scenes
-  // Per Remotion Skills: transitions overlap adjacent scenes, so total duration is shorter
+  // Build TransitionSeries with spring-based transitions between scenes
+  // Per Promo Video Mastery skill: use springs for natural motion, vary transitions for interest
   return (
     <AbsoluteFill>
       <TransitionSeries>
         {sceneTimings.map((timing, index) => {
           const isLast = index === sceneTimings.length - 1;
+          const nextScene = sceneTimings[index + 1]?.scene;
 
           return (
             <>
@@ -76,12 +89,12 @@ export function PromoVideo({ script, format = 'landscape', falAssets }: PromoVid
                   isLast={isLast}
                 />
               </TransitionSeries.Sequence>
-              {/* Add fade transition between scenes (not after last scene) */}
+              {/* Add spring-based transition between scenes (not after last scene) */}
               {!isLast && (
                 <TransitionSeries.Transition
                   key={`transition-${index}`}
-                  presentation={fade()}
-                  timing={transitionTiming}
+                  presentation={getTransitionPresentation(timing.scene.type, nextScene?.type)}
+                  timing={createSpringTransition()}
                 />
               )}
             </>
@@ -176,6 +189,30 @@ function getDefaultDuration(sceneType: string, style: StyleConfig): number {
     default:
       return defaults.feature;
   }
+}
+
+/**
+ * Get transition presentation based on scene types
+ * Per Promo Video Mastery skill: vary transitions for visual interest
+ * - Fade: Default, works for most transitions
+ * - Slide: Good for sequential flow (feature to feature)
+ */
+function getTransitionPresentation(
+  currentType: string,
+  nextType: string | undefined
+): ReturnType<typeof fade> | ReturnType<typeof slide> {
+  // Slide transition for intro → feature (establishes forward motion)
+  if (currentType === 'intro' && nextType === 'feature') {
+    return slide({ direction: 'from-right' });
+  }
+
+  // Slide for stats → cta (drive toward action)
+  if (currentType === 'stats' && nextType === 'cta') {
+    return slide({ direction: 'from-bottom' });
+  }
+
+  // Default: fade (clean, professional)
+  return fade();
 }
 
 interface SceneRendererProps {

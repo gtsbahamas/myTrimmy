@@ -22,12 +22,13 @@ export const minimalStyle = {
   moveEasing: easeInOutCubic,
 
   // Scene defaults (in frames)
+  // Per Promo Video Mastery skill: optimized for 60-90 second explainers
   sceneDefaults: {
-    intro: secondsToFrames(4),
-    feature: secondsToFrames(4),
-    stats: secondsToFrames(4),
-    screenshot: secondsToFrames(5),
-    cta: secondsToFrames(4),
+    intro: secondsToFrames(4),      // Hook quickly, logo + headline
+    feature: secondsToFrames(5),    // Enough time to read benefit
+    stats: secondsToFrames(4.5),    // Counter animation + absorption
+    screenshot: secondsToFrames(6), // Allow product to breathe
+    cta: secondsToFrames(5),        // Clear call to action
   },
 
   // Text animation
